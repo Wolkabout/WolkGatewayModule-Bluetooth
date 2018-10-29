@@ -15,6 +15,7 @@
  */
 
 #include "Configuration.h"
+#include "protocol/json/JsonDto.h"
 #include "utilities/FileSystemUtils.h"
 #include "utilities/json.hpp"
 
@@ -26,19 +27,10 @@ namespace wolkabout
 {
 using nlohmann::json;
 
-DeviceConfiguration::DeviceConfiguration(std::string name, std::string protocol, std::string localMqttUri)
-: m_name(std::move(name)), m_protocol(std::move(protocol)), m_localMqttUri(std::move(localMqttUri))
+DeviceConfiguration::DeviceConfiguration(std::string localMqttUri, unsigned interval,
+                                         std::vector<wolkabout::Device> devices)
+: m_localMqttUri(std::move(localMqttUri)), m_interval(interval), m_devices(std::move(devices))
 {
-}
-
-const std::string& DeviceConfiguration::getName() const
-{
-    return m_name;
-}
-
-const std::string& DeviceConfiguration::getProtocol() const
-{
-    return m_protocol;
 }
 
 const std::string& DeviceConfiguration::getLocalMqttUri() const
@@ -46,24 +38,44 @@ const std::string& DeviceConfiguration::getLocalMqttUri() const
     return m_localMqttUri;
 }
 
+unsigned DeviceConfiguration::getInterval() const
+{
+    return m_interval;
+}
+
+const std::vector<wolkabout::Device>& DeviceConfiguration::getDevices() const
+{
+    return m_devices;
+}
+
 wolkabout::DeviceConfiguration DeviceConfiguration::fromJson(const std::string& deviceConfigurationFile)
 {
     if (!FileSystemUtils::isFilePresent(deviceConfigurationFile))
     {
-        throw std::logic_error("Given device configuration file does not exist.");
+        throw std::logic_error("Given gateway configuration file does not exist.");
     }
 
     std::string deviceConfigurationJson;
     if (!FileSystemUtils::readFileContent(deviceConfigurationFile, deviceConfigurationJson))
     {
-        throw std::logic_error("Unable to read device configuration file.");
+        throw std::logic_error("Unable to read gateway configuration file.");
     }
 
     auto j = json::parse(deviceConfigurationJson);
-    const auto name = j.at("name").get<std::string>();
-    const auto protocol = j.at("protocol").get<std::string>();
-    const auto localMqttUri = j.at("localMqttUri").get<std::string>();
 
-    return DeviceConfiguration(name, protocol, localMqttUri);
+    const auto localMqttUri = j.at("host").get<std::string>();
+    const auto interval = j.at("readingsInterval").get<unsigned>();
+
+    std::vector<Device> devices;
+    for (auto& element : j.at("devices"))
+    {
+        const auto manifest = element.at("manifest").get<wolkabout::DeviceManifest>();
+        const auto name = element.at("name").get<std::string>();
+        const auto key = element.at("key").get<std::string>();
+
+        devices.push_back(Device(name, key, manifest));
+    }
+
+    return DeviceConfiguration(localMqttUri, interval, devices);
 }
 }    // namespace wolkabout
