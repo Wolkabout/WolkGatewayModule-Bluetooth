@@ -21,15 +21,24 @@
 
 namespace wolkabout
 {
+enum class ValueGenerator
+{
+    RANDOM = 0,
+    INCEREMENTAL
+};
+
 class DeviceConfiguration
 {
 public:
     DeviceConfiguration() = default;
-    DeviceConfiguration(std::string localMqttUri, unsigned interval, std::vector<wolkabout::Device> devices);
+    DeviceConfiguration(std::string localMqttUri, unsigned interval, std::vector<wolkabout::Device> devices,
+                        ValueGenerator generator);
 
     const std::string& getLocalMqttUri() const;
 
     unsigned getInterval() const;
+
+    ValueGenerator getValueGenerator() const;
 
     const std::vector<wolkabout::Device>& getDevices() const;
 
@@ -41,5 +50,7 @@ private:
     unsigned m_interval;
 
     std::vector<wolkabout::Device> m_devices;
+
+    ValueGenerator m_valueGenerator;
 };
 }    // namespace wolkabout

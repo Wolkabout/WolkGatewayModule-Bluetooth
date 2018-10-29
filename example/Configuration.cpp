@@ -15,6 +15,7 @@
  */
 
 #include "Configuration.h"
+#include "model/WolkOptional.h"
 #include "protocol/json/JsonDto.h"
 #include "utilities/FileSystemUtils.h"
 #include "utilities/json.hpp"
@@ -28,8 +29,11 @@ namespace wolkabout
 using nlohmann::json;
 
 DeviceConfiguration::DeviceConfiguration(std::string localMqttUri, unsigned interval,
-                                         std::vector<wolkabout::Device> devices)
-: m_localMqttUri(std::move(localMqttUri)), m_interval(interval), m_devices(std::move(devices))
+                                         std::vector<wolkabout::Device> devices, ValueGenerator generator)
+: m_localMqttUri(std::move(localMqttUri))
+, m_interval(interval)
+, m_devices(std::move(devices))
+, m_valueGenerator(generator)
 {
 }
 
@@ -41,6 +45,11 @@ const std::string& DeviceConfiguration::getLocalMqttUri() const
 unsigned DeviceConfiguration::getInterval() const
 {
     return m_interval;
+}
+
+ValueGenerator DeviceConfiguration::getValueGenerator() const
+{
+    return m_valueGenerator;
 }
 
 const std::vector<wolkabout::Device>& DeviceConfiguration::getDevices() const
@@ -66,6 +75,17 @@ wolkabout::DeviceConfiguration DeviceConfiguration::fromJson(const std::string& 
     const auto localMqttUri = j.at("host").get<std::string>();
     const auto interval = j.at("readingsInterval").get<unsigned>();
 
+    WolkOptional<ValueGenerator> valueGenerator = ValueGenerator::RANDOM;
+
+    if (j.find("generator") != j.end())
+    {
+        const auto gen = j.at("generator").get<std::string>();
+        if (gen == "incremental")
+        {
+            valueGenerator = ValueGenerator::INCEREMENTAL;
+        }
+    }
+
     std::vector<Device> devices;
     for (auto& element : j.at("devices"))
     {
@@ -76,6 +96,6 @@ wolkabout::DeviceConfiguration DeviceConfiguration::fromJson(const std::string& 
         devices.push_back(Device(name, key, manifest));
     }
 
-    return DeviceConfiguration(localMqttUri, interval, devices);
+    return DeviceConfiguration(localMqttUri, interval, devices, valueGenerator.value());
 }
 }    // namespace wolkabout
