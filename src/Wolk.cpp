@@ -301,7 +301,6 @@ void Wolk::handleActuatorSetCommand(const std::string& key, const std::string& r
     addToCommandBuffer([=] {
         if (!deviceExists(key))
         {
-            LOG(ERROR) << "Device does not exist: " << key;
             return;
         }
 
@@ -343,7 +342,6 @@ void Wolk::handleActuatorGetCommand(const std::string& key, const std::string& r
     addToCommandBuffer([=] {
         if (!deviceExists(key))
         {
-            LOG(ERROR) << "Device does not exist: " << key;
             return;
         }
 
@@ -374,6 +372,11 @@ void Wolk::handleActuatorGetCommand(const std::string& key, const std::string& r
 void Wolk::handleDeviceStatusRequest(const std::string& key)
 {
     addToCommandBuffer([=] {
+        if (!deviceExists(key))
+        {
+            return;
+        }
+
         const DeviceStatus status = [&] {
             if (m_deviceStatusProvider)
             {
@@ -396,7 +399,6 @@ void Wolk::handleConfigurationSetCommand(const std::string& key, const std::vect
     addToCommandBuffer([=] {
         if (!deviceExists(key))
         {
-            LOG(ERROR) << "Device does not exist: " << key;
             return;
         }
 
@@ -442,7 +444,6 @@ void Wolk::handleConfigurationGetCommand(const std::string& key)
     addToCommandBuffer([=] {
         if (!deviceExists(key))
         {
-            LOG(ERROR) << "Device does not exist: " << key;
             return;
         }
 

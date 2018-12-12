@@ -21,6 +21,7 @@
 
 #include "model/SensorManifest.h"
 
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <map>
@@ -28,6 +29,56 @@
 #include <random>
 #include <string>
 #include <thread>
+
+class ActuatorHandler
+{
+public:
+    virtual ~ActuatorHandler() = default;
+    virtual std::string getValue() = 0;
+    virtual void setValue(std::string value) = 0;
+};
+
+template <class T> class ActuatorTemplateHandler : public ActuatorHandler
+{
+public:
+    void setValue(std::string value) override
+    {
+        try
+        {
+            m_value = std::stod(value);
+        }
+        catch (...)
+        {
+        }
+    }
+
+    std::string getValue() override { return std::to_string(m_value); }
+
+private:
+    T m_value;
+};
+
+template <> class ActuatorTemplateHandler<bool> : public ActuatorHandler
+{
+public:
+    void setValue(std::string value) override { m_value = value == "true"; }
+
+    std::string getValue() override { return m_value ? "true" : "false"; }
+
+private:
+    bool m_value;
+};
+
+template <> class ActuatorTemplateHandler<std::string> : public ActuatorHandler
+{
+public:
+    void setValue(std::string value) override { m_value = value; }
+
+    std::string getValue() override { return m_value; }
+
+private:
+    std::string m_value;
+};
 
 int main(int argc, char** argv)
 {
@@ -52,69 +103,50 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    static bool switchValue = false;
-    static int sliderValue = 0;
-    static std::vector<wolkabout::ConfigurationItem> device1configuration = {{{"value1"}, "KEY_1"},
-                                                                             {{"50", "32", "-2"}, "KEY_2"}};
-    static std::vector<wolkabout::ConfigurationItem> device2configuration = {{{"value3"}, "KEY_3"}};
+    std::map<std::string, std::shared_ptr<ActuatorHandler>> handlers;
 
-    wolkabout::SensorManifest temperatureSensor{"Temperature",
-                                                "T",
-                                                wolkabout::ReadingType::Name::TEMPERATURE,
-                                                wolkabout::ReadingType::MeasurmentUnit::CELSIUS,
-                                                "",
-                                                -273.15,
-                                                100000000};
-    wolkabout::SensorManifest pressureSensor{
-      "Pressure", "P", wolkabout::ReadingType::Name::PRESSURE, wolkabout::ReadingType::MeasurmentUnit::MILLIBAR, "",
-      0,          1100};
-    wolkabout::SensorManifest humiditySensor{"Humidity",
-                                             "H",
-                                             wolkabout::ReadingType::Name::HUMIDITY,
-                                             wolkabout::ReadingType::MeasurmentUnit::HUMIDITY_PERCENT,
-                                             "",
-                                             0,
-                                             100};
+    for (const auto& device : appConfiguration.getDevices())
+    {
+        for (const auto& actuator : device.getManifest().getActuators())
+        {
+            std::shared_ptr<ActuatorHandler> handler;
+            switch (actuator.getDataType())
+            {
+            case wolkabout::DataType::BOOLEAN:
+            {
+                handler.reset(new ActuatorTemplateHandler<bool>());
+                break;
+            }
+            case wolkabout::DataType::NUMERIC:
+            {
+                handler.reset(new ActuatorTemplateHandler<double>());
+                break;
+            }
+            case wolkabout::DataType::STRING:
+            {
+                handler.reset(new ActuatorTemplateHandler<std::string>());
+                break;
+            }
+            }
 
-    wolkabout::SensorManifest accelerationSensor{"Acceleration",
-                                                 "ACCELEROMETER_REF",
-                                                 wolkabout::ReadingType::Name::ACCELEROMETER,
-                                                 wolkabout::ReadingType::MeasurmentUnit::METRES_PER_SQUARE_SECOND,
-                                                 "",
-                                                 0,
-                                                 20000};
+            handlers[device.getKey() + "_" + actuator.getReference()] = handler;
+        }
+    }
 
-    wolkabout::ActuatorManifest switchActuator{"Switch", "SW", wolkabout::DataType::BOOLEAN, "Light switch"};
-    wolkabout::ActuatorManifest sliderActuator{"Slider", "SL", wolkabout::DataType::NUMERIC, "Light dimmer", 0, 115};
-    wolkabout::ActuatorManifest textActuator{"Message", "MSG", wolkabout::DataType::STRING, "Text"};
+    static std::map<std::string, std::vector<wolkabout::ConfigurationItem>> localConfiguration;
 
-    wolkabout::AlarmManifest highHumidityAlarm{"High Humidity", wolkabout::AlarmManifest::AlarmSeverity::ALERT, "HH",
-                                               "High Humidity", ""};
+    static std::map<std::string, std::tuple<int, bool>> m_firmwareStatuses;
 
-    wolkabout::ConfigurationManifest configurationItem1{"Item1", "KEY_1", wolkabout::DataType::STRING, "", "value1"};
+    for (const auto& device : appConfiguration.getDevices())
+    {
+        for (const auto& conf : device.getManifest().getConfigurations())
+        {
+            localConfiguration[device.getKey()].push_back(wolkabout::ConfigurationItem{
+              std::vector<std::string>(conf.getSize(), conf.getDefaultValue()), conf.getReference()});
+        }
 
-    wolkabout::ConfigurationManifest configurationItem2{
-      "Item2", "KEY_2", wolkabout::DataType::NUMERIC, "", "5", {"x", "y", "z"}, 0, 100};
-
-    wolkabout::ConfigurationManifest configurationItem3{"Item3", "KEY_3", wolkabout::DataType::BOOLEAN, "", "false"};
-
-    wolkabout::DeviceManifest deviceManifest1{"DEVICE_MANIFEST_NAME_1",
-                                              "DEVICE_MANIFEST_DESCRIPTION_1",
-                                              "JsonProtocol",
-                                              "DFU",
-                                              {configurationItem1, configurationItem2},
-                                              {temperatureSensor, humiditySensor},
-                                              {},
-                                              {switchActuator, textActuator}};
-    wolkabout::Device device1{"DEVICE_NAME_1", "DEVICE_KEY_1", deviceManifest1};
-
-    wolkabout::DeviceManifest deviceManifest2{
-      "DEVICE_MANIFEST_NAME_2", "DEVICE_MANIFEST_DESCRIPTION_2",      "JsonProtocol",      "DFU",
-      {configurationItem3},     {pressureSensor, accelerationSensor}, {highHumidityAlarm}, {sliderActuator}};
-    wolkabout::Device device2{"DEVICE_NAME_2", "DEVICE_KEY_2", deviceManifest2};
-
-    static int device1firmwareVersion = 1;
-    static int device2firmwareVersion = 1;
+        m_firmwareStatuses[device.getKey()] = {1, true};
+    }
 
     class FirmwareInstallerImpl : public wolkabout::FirmwareInstaller
     {
@@ -124,9 +156,11 @@ int main(int argc, char** argv)
                      std::function<void(const std::string& deviceKey)> onFail) override
         {
             LOG(INFO) << "Install firmware: " << firmwareFile << ", for device " << deviceKey;
-            if (deviceKey == "DEVICE_KEY_1")
+
+            auto it = m_firmwareStatuses.find(deviceKey);
+            if (it != m_firmwareStatuses.end() && std::get<1>(it->second))
             {
-                ++device1firmwareVersion;
+                ++(std::get<0>(it->second));
                 onSuccess(deviceKey);
             }
             else
@@ -141,14 +175,12 @@ int main(int argc, char** argv)
     public:
         std::string getFirmwareVersion(const std::string& deviceKey)
         {
-            if (deviceKey == "DEVICE_KEY_1")
+            auto it = m_firmwareStatuses.find(deviceKey);
+            if (it != m_firmwareStatuses.end())
             {
-                return std::to_string(device1firmwareVersion) + ".0.0";
+                return std::to_string(std::get<0>(it->second)) + "0.0";
             }
-            else if (deviceKey == "DEVICE_KEY_2")
-            {
-                return std::to_string(device2firmwareVersion) + ".0.0";
-            }
+
             return "";
         }
     };
@@ -158,44 +190,35 @@ int main(int argc, char** argv)
 
     std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
-        .actuationHandler(
-          [&](const std::string& deviceKey, const std::string& reference, const std::string& value) -> void {
-              std::cout << "Actuation request received - Reference: " << reference << " value: " << value << std::endl;
-              if (deviceKey == "DEVICE_KEY_1" && reference == "SW")
-              {
-                  switchValue = value == "true" ? true : false;
-              }
-              else if (deviceKey == "DEVICE_KEY_2" && reference == "SL")
-              {
-                  try
-                  {
-                      sliderValue = std::stoi(value);
-                  }
-                  catch (...)
-                  {
-                  }
-              }
-          })
-        .actuatorStatusProvider([&](const std::string& deviceKey,
-                                    const std::string& reference) -> wolkabout::ActuatorStatus {
-            if (deviceKey == "DEVICE_KEY_1" && reference == "SW")
+        .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
+            std::cout << "Actuation request received - Key: " << key << " Reference: " << reference
+                      << " value: " << value << std::endl;
+
+            std::string handlerId = key + "_" + reference;
+
+            auto it = handlers.find(handlerId);
+            if (it != handlers.end())
             {
-                return wolkabout::ActuatorStatus(switchValue ? "true" : "false",
-                                                 wolkabout::ActuatorStatus::State::READY);
+                it->second->setValue(value);
             }
-            else if (deviceKey == "DEVICE_KEY_2" && reference == "SL")
+        })
+        .actuatorStatusProvider([&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {
+            std::string handlerId = key + "_" + reference;
+
+            auto it = handlers.find(handlerId);
+            if (it != handlers.end())
             {
-                return wolkabout::ActuatorStatus(std::to_string(sliderValue), wolkabout::ActuatorStatus::State::READY);
+                return wolkabout::ActuatorStatus(it->second->getValue(), wolkabout::ActuatorStatus::State::READY);
             }
 
             return wolkabout::ActuatorStatus("", wolkabout::ActuatorStatus::State::READY);
         })
-        .deviceStatusProvider([](const std::string& deviceKey) -> wolkabout::DeviceStatus {
-            if (deviceKey == "DEVICE_KEY_1")
-            {
-                return wolkabout::DeviceStatus::CONNECTED;
-            }
-            else if (deviceKey == "DEVICE_KEY_2")
+        .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus {
+            auto it =
+              std::find_if(appConfiguration.getDevices().begin(), appConfiguration.getDevices().end(),
+                           [&](const wolkabout::Device& device) -> bool { return (device.getKey() == deviceKey); });
+
+            if (it != appConfiguration.getDevices().end())
             {
                 return wolkabout::DeviceStatus::CONNECTED;
             }
@@ -204,23 +227,17 @@ int main(int argc, char** argv)
         })
         .configurationHandler(
           [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {
-              if (deviceKey == "DEVICE_KEY_1")
+              auto it = localConfiguration.find(deviceKey);
+              if (it != localConfiguration.end())
               {
-                  // device1configuration = configuration;
-              }
-              else if (deviceKey == "DEVICE_KEY_2")
-              {
-                  // device2configuration = configuration;
+                  localConfiguration[deviceKey] = configuration;
               }
           })
         .configurationProvider([&](const std::string& deviceKey) -> std::vector<wolkabout::ConfigurationItem> {
-            if (deviceKey == "DEVICE_KEY_1")
+            auto it = localConfiguration.find(deviceKey);
+            if (it != localConfiguration.end())
             {
-                return device1configuration;
-            }
-            else if (deviceKey == "DEVICE_KEY_2")
-            {
-                return device2configuration;
+                return localConfiguration[deviceKey];
             }
 
             return {};
@@ -229,26 +246,52 @@ int main(int argc, char** argv)
         .host(appConfiguration.getLocalMqttUri())
         .build();
 
-    wolk->addDevice(device1);
-    wolk->addDevice(device2);
+    for (const auto& device : appConfiguration.getDevices())
+    {
+        wolk->addDevice(device);
+    }
 
     wolk->connect();
 
-    wolk->addSensorReading("DEVICE_KEY_1", "P", 1024);
-    wolk->addSensorReading("DEVICE_KEY_1", "T", 25.6);
+    std::random_device rd;
+    std::mt19937 mt(rd());
 
-    wolk->addSensorReading("DEVICE_KEY_2", "H", 52);
-    wolk->addAlarm("DEVICE_KEY_2", "HH", "High Humidity");
-
-    wolk->addSensorReading("DEVICE_KEY_2", "ACCELEROMETER_REF", {0, -5, 10});
-
-    wolk->addDeviceStatus("DEVICE_KEY_1", wolkabout::DeviceStatus::CONNECTED);
-    wolk->addDeviceStatus("DEVICE_KEY_2", wolkabout::DeviceStatus::CONNECTED);
+    const unsigned interval = appConfiguration.getInterval();
 
     while (true)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    }
+        for (const auto& device : appConfiguration.getDevices())
+        {
+            for (const auto& sensor : device.getManifest().getSensors())
+            {
+                std::vector<int> values;
 
+                if (appConfiguration.getValueGenerator() == wolkabout::ValueGenerator::INCEREMENTAL)
+                {
+                    static int value = 0;
+                    for (size_t i = 0; i < sensor.getSize(); ++i)
+                    {
+                        values.push_back(++value);
+                    }
+                }
+                else
+                {
+                    std::uniform_int_distribution<int> dist(sensor.getMinimum(), sensor.getMaximum());
+
+                    for (size_t i = 0; i < sensor.getSize(); ++i)
+                    {
+                        int rand_num = dist(mt);
+                        values.push_back(rand_num);
+                    }
+                }
+
+                wolk->addSensorReading(device.getKey(), sensor.getReference(), values);
+            }
+        }
+
+        wolk->publish();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+    }
     return 0;
 }

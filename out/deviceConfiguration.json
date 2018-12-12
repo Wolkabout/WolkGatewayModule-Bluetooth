@@ -1,0 +1,6 @@
+{
+"host":"tcp://localhost:1883",
+"readingsInterval":5000,
+"generator":"incremental",
+"devices":[]
+}
