@@ -2,5 +2,29 @@
 "host":"tcp://localhost:1883",
 "readingsInterval":5000,
 "generator":"incremental",
-"devices":[]
+"devices":[
+{"name":"test_device1",
+"key":"test_device_key1",
+"password":"",
+"manifest":{
+"actuators":[{"description":"Light dimmer","maximum":115.0,"minimum":0.0,"name":"Slider","readingType":{"dataType":"NUMERIC","labels":[],"name":"COUNT(ACTUATOR)","precision":1,"size":1},"reference":"SL","unit":{"readingType":"COUNT(ACTUATOR)","symbol":"count"}},{"description":"Light switch","maximum":null,"minimum":null,"name":"Switch","readingType":{"dataType":"BOOLEAN","labels":[],"name":"SWITCH(ACTUATOR)","precision":1,"size":1},"reference":"SW","unit":{"readingType":"SWITCH(ACTUATOR)","symbol":""}},{"description":"Text","maximum":null,"minimum":null,"name":"Message","readingType":{"dataType":"STRING","labels":[],"name":"STRING(ACTUATOR)","precision":1,"size":1},"reference":"MSG","unit":{"readingType":"STRING(ACTUATOR)","symbol":""}}],
+"alarms":[{"description":"","message":"High Humidity","name":"High Humidity","reference":"HH","severity":"ALERT"}],
+"configs":[{"dataType":"STRING","defaultValue":"value1","description":"","labels":null,"maximum":null,"minimum":null,"name":"Item1","reference":"KEY_1","size":1},{"dataType":"NUMERIC","defaultValue":"5","description":"","labels":["x","y","z"],"maximum":100.0,"minimum":0.0,"name":"Item2","reference":"KEY_2","size":3},{"dataType":"BOOLEAN","defaultValue":"false","description":"","labels":null,"maximum":null,"minimum":null,"name":"Item3","reference":"KEY_3","size":1}],
+"description":"DEVICE_MANIFEST_DESCRIPTION_1",
+"feeds":[{"description":"","maximum":100000000.0,"minimum":-273.15,"name":"Temperature","readingType":{"dataType":"NUMERIC","labels":[],"name":"TEMPERATURE","precision":1,"size":1},"reference":"T","unit":{"readingType":"TEMPERATURE","symbol":"℃"}},{"description":"","maximum":20000.0,"minimum":0.0,"name":"Acceleration","readingType":{"dataType":"NUMERIC","labels":["x","y","z"],"name":"ACCELEROMETER","precision":1,"size":3},"reference":"ACCELEROMETER_REF","unit":{"readingType":"ACCELEROMETER","symbol":"m/s²"}}],
+"firmwareUpdateType":"DFU",
+"name":"DEVICE_MANIFEST_NAME_1",
+"protocol":"JsonProtocol"}},
+{"name":"test_device2",
+"key":"test_device_key2",
+"password":"",
+"manifest":{
+"actuators":[{"description":"Light dimmer","maximum":115.0,"minimum":0.0,"name":"Slider","readingType":{"dataType":"NUMERIC","labels":[],"name":"COUNT(ACTUATOR)","precision":1,"size":1},"reference":"SL","unit":{"readingType":"COUNT(ACTUATOR)","symbol":"count"}},{"description":"Light switch","maximum":null,"minimum":null,"name":"Switch","readingType":{"dataType":"BOOLEAN","labels":[],"name":"SWITCH(ACTUATOR)","precision":1,"size":1},"reference":"SW","unit":{"readingType":"SWITCH(ACTUATOR)","symbol":""}},{"description":"Text","maximum":null,"minimum":null,"name":"Message","readingType":{"dataType":"STRING","labels":[],"name":"STRING(ACTUATOR)","precision":1,"size":1},"reference":"MSG","unit":{"readingType":"STRING(ACTUATOR)","symbol":""}}],
+"alarms":[{"description":"","message":"High Humidity","name":"High Humidity","reference":"HH","severity":"ALERT"}],
+"configs":[{"dataType":"STRING","defaultValue":"value1","description":"","labels":null,"maximum":null,"minimum":null,"name":"Item1","reference":"KEY_1","size":1},{"dataType":"NUMERIC","defaultValue":"5","description":"","labels":["x","y","z"],"maximum":100.0,"minimum":0.0,"name":"Item2","reference":"KEY_2","size":3},{"dataType":"BOOLEAN","defaultValue":"false","description":"","labels":null,"maximum":null,"minimum":null,"name":"Item3","reference":"KEY_3","size":1}],
+"description":"DEVICE_MANIFEST_DESCRIPTION_1",
+"feeds":[{"description":"","maximum":100000000.0,"minimum":-273.15,"name":"Temperature","readingType":{"dataType":"NUMERIC","labels":[],"name":"TEMPERATURE","precision":1,"size":1},"reference":"T","unit":{"readingType":"TEMPERATURE","symbol":"℃"}},{"description":"","maximum":20000.0,"minimum":0.0,"name":"Acceleration","readingType":{"dataType":"NUMERIC","labels":["x","y","z"],"name":"ACCELEROMETER","precision":1,"size":3},"reference":"ACCELEROMETER_REF","unit":{"readingType":"ACCELEROMETER","symbol":"m/s²"}}],
+"firmwareUpdateType":"DFU",
+"name":"DEVICE_MANIFEST_NAME_2",
+"protocol":"JsonProtocol"}}]
 }

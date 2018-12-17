@@ -155,7 +155,7 @@ int main(int argc, char** argv)
                      std::function<void(const std::string& deviceKey)> onSuccess,
                      std::function<void(const std::string& deviceKey)> onFail) override
         {
-            LOG(INFO) << "Install firmware: " << firmwareFile << ", for device " << deviceKey;
+            LOG(INFO) << "Installing firmware: " << firmwareFile << ", for device " << deviceKey;
 
             auto it = m_firmwareStatuses.find(deviceKey);
             if (it != m_firmwareStatuses.end() && std::get<1>(it->second))
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
             auto it = m_firmwareStatuses.find(deviceKey);
             if (it != m_firmwareStatuses.end())
             {
-                return std::to_string(std::get<0>(it->second)) + "0.0";
+                return std::to_string(std::get<0>(it->second)) + ".0.0";
             }
 
             return "";
