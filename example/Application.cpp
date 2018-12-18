@@ -145,7 +145,7 @@ int main(int argc, char** argv)
               std::vector<std::string>(conf.getSize(), conf.getDefaultValue()), conf.getReference()});
         }
 
-        m_firmwareStatuses[device.getKey()] = {1, true};
+        m_firmwareStatuses[device.getKey()] = std::make_tuple(1, true);
     }
 
     class FirmwareInstallerImpl : public wolkabout::FirmwareInstaller
