@@ -161,6 +161,7 @@ int main(int argc, char** argv)
             if (it != m_firmwareStatuses.end() && std::get<1>(it->second))
             {
                 ++(std::get<0>(it->second));
+                std::this_thread::sleep_for(std::chrono::seconds(10));
                 onSuccess(deviceKey);
             }
             else
