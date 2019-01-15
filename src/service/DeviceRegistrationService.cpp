@@ -32,7 +32,32 @@ DeviceRegistrationService::DeviceRegistrationService(RegistrationProtocol& proto
 {
 }
 
-void DeviceRegistrationService::messageReceived(std::shared_ptr<Message> message) {}
+void DeviceRegistrationService::messageReceived(std::shared_ptr<Message> message)
+{
+    const std::string deviceKey = m_protocol.extractDeviceKeyFromChannel(message->getChannel());
+    if (deviceKey.empty())
+    {
+        LOG(WARN) << "Unable to extract device key from channel: " << message->getChannel();
+        return;
+    }
+
+    if (m_protocol.isRegistrationResponseMessage(*message))
+    {
+        const auto response = m_protocol.makeRegistrationResponse(*message);
+        if (!response)
+        {
+            LOG(ERROR)
+              << "DeviceRegistrationService: Device registration response could not be deserialized. Channel: '"
+              << message->getChannel() << "' Payload: '" << message->getContent() << "'";
+            return;
+        }
+        m_registrationResponseHandler(deviceKey, response->getResult());
+    }
+    else
+    {
+        LOG(WARN) << "Unable to parse message channel: " << message->getChannel();
+    }
+}
 
 const Protocol& DeviceRegistrationService::getProtocol()
 {

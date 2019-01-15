@@ -225,13 +225,17 @@ private:
     void registerDevices();
     void registerDevice(const Device& device);
 
+    void publishFirmwareVersion(const std::string& deviceKey);
     void publishFirmwareVersions();
+
+    void publishDeviceStatuses();
 
     std::vector<std::string> getDeviceKeys();
     bool deviceExists(const std::string& deviceKey);
     bool sensorDefinedForDevice(const std::string& deviceKey, const std::string& reference);
     std::string getSensorDelimiter(const std::string& deviceKey, const std::string& reference);
     std::map<std::string, std::string> getConfigurationDelimiters(const std::string& deviceKey);
+    std::vector<std::string> getActuatorReferences(const std::string& deviceKey);
     bool alarmDefinedForDevice(const std::string& deviceKey, const std::string& reference);
     bool actuatorDefinedForDevice(const std::string& deviceKey, const std::string& reference);
     bool configurationItemDefinedForDevice(const std::string& deviceKey, const std::string& reference);

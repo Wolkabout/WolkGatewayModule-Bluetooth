@@ -190,6 +190,7 @@ void Wolk::connect()
             m_connected = true;
             registerDevices();
             publishFirmwareVersions();
+            publishDeviceStatuses();
 
             for (const auto& kvp : m_devices)
             {
@@ -480,6 +481,18 @@ void Wolk::registerDevices()
     });
 }
 
+void Wolk::publishFirmwareVersion(const std::string& deviceKey)
+{
+    addToCommandBuffer([=] {
+        if (!m_firmwareUpdateService)
+        {
+            return;
+        }
+
+        m_firmwareUpdateService->publishFirmwareVersion(deviceKey);
+    });
+}
+
 void Wolk::publishFirmwareVersions()
 {
     addToCommandBuffer([=] {
@@ -491,6 +504,16 @@ void Wolk::publishFirmwareVersions()
         for (const auto& kvp : m_devices)
         {
             m_firmwareUpdateService->publishFirmwareVersion(kvp.second.getKey());
+        }
+    });
+}
+
+void Wolk::publishDeviceStatuses()
+{
+    addToCommandBuffer([=] {
+        for (const auto& kvp : m_devices)
+        {
+            handleDeviceStatusRequest(kvp.second.getKey());
         }
     });
 }
@@ -569,6 +592,17 @@ std::map<std::string, std::string> Wolk::getConfigurationDelimiters(const std::s
     return delimiters;
 }
 
+std::vector<std::string> Wolk::getActuatorReferences(const std::string& deviceKey)
+{
+    auto it = m_devices.find(deviceKey);
+    if (it == m_devices.end())
+    {
+        return {};
+    }
+
+    return it->second.getActuatorReferences();
+}
+
 bool Wolk::alarmDefinedForDevice(const std::string& deviceKey, const std::string& reference)
 {
     auto it = m_devices.find(deviceKey);
@@ -617,6 +651,24 @@ bool Wolk::configurationItemDefinedForDevice(const std::string& deviceKey, const
 void Wolk::handleRegistrationResponse(const std::string& deviceKey, DeviceRegistrationResponse::Result result)
 {
     LOG(INFO) << "Registration response for device '" << deviceKey << "' received: " << static_cast<int>(result);
+
+    addToCommandBuffer([=] {
+        if (!deviceExists(deviceKey))
+        {
+            LOG(ERROR) << "Device does not exist: " << deviceKey;
+            return;
+        }
+
+        if (result == DeviceRegistrationResponse::Result::OK)
+        {
+            for (const auto& ref : getActuatorReferences(deviceKey))
+            {
+                publishActuatorStatus(deviceKey, ref);
+            }
+        }
+
+        publishFirmwareVersion(deviceKey);
+    });
 }
 
 Wolk::ConnectivityFacade::ConnectivityFacade(InboundMessageHandler& handler,
