@@ -32,7 +32,6 @@ public:
      * @param firmwareFile Firmware file to install
      * @param onSuccess Function to call if install is successful
      * @param onFail Function to call if install has failed
-     * @return false if fails, on success does not return
      */
     virtual void install(const std::string& deviceKey, const std::string& firmwareFile,
                          std::function<void(const std::string& deviceKey)> onSuccess,
