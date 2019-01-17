@@ -665,9 +665,11 @@ void Wolk::handleRegistrationResponse(const std::string& deviceKey, DeviceRegist
             {
                 publishActuatorStatus(deviceKey, ref);
             }
-        }
 
-        publishFirmwareVersion(deviceKey);
+            publishConfiguration(deviceKey);
+
+            publishFirmwareVersion(deviceKey);
+        }
     });
 }
 
