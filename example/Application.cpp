@@ -47,7 +47,6 @@ GDBusConnection *con;
 gboolean is_scanning;
 std::map<std::string, int> devices;
 wolkabout::DeviceConfiguration appConfiguration;
-std::unique_ptr<wolkabout::Wolk> wolk;
 /*
 bluez functions
 */
@@ -240,6 +239,10 @@ static int bluez_adapter_set_property(const char *prop, GVariant *value)
 
 gboolean notify(gpointer user_data)
 {
+
+    //std::unique_ptr<wolkabout::Wolk>
+    wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
+
     g_print("Time is up!\n");
 
     if(is_scanning){
@@ -250,11 +253,6 @@ gboolean notify(gpointer user_data)
         }
         g_usleep(100);
         is_scanning = FALSE;
-
-        /*publish*/
-        /*for (auto it = devices.begin(); it != devices.end(); it++) {
-            std::cout<<"device: "<<it->first<<" value: "<<it->second<<"\n";
-        }*/
 
         for(const auto& device : appConfiguration.getDevices()){
             for (const auto& sensor : device.getManifest().getSensors()){
@@ -456,7 +454,7 @@ int main(int argc, char** argv)
     auto installer = std::make_shared<FirmwareInstallerImpl>();
     auto provider = std::make_shared<FirmwareVersionProviderImpl>();
 
-    wolk =
+    std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
         .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
             std::cout << "Actuation request received - Key: " << key << " Reference: " << reference
@@ -536,7 +534,7 @@ int main(int argc, char** argv)
     if(time_in_seconds == 0)
         time_in_seconds = DEFAULT_TIME;
 
-    guint timeout_id = g_timeout_add_seconds(time_in_seconds, notify, NULL);
+    guint timeout_id = g_timeout_add_seconds(time_in_seconds, notify, (void*)wolk.get());
 
     prop_changed = g_dbus_connection_signal_subscribe(con,
                         "org.bluez",
