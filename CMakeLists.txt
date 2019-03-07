@@ -19,7 +19,7 @@ set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(NO_OUTPUT_DIRS KEEP_RPATHS)
-
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 11)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}    -Wall -Wextra -pedantic                                                    \
@@ -54,8 +54,32 @@ include_directories("src")
 file(GLOB_RECURSE HEADER_FILES "src/*.h" "src/*.hpp")
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "example/*.cpp")
 
+#glib
+FIND_PACKAGE(PkgConfig)
+PKG_CHECK_MODULES(GLIB glib-2.0)
+include_directories(${GLIB_INCLUDE_DIRS})
+link_directories(${GLIB_LIBRARY_DIRS})
+add_definitions(${GLIB_CFLAGS_OTHER})
+
+IF(GLIB_FOUND)
+    message("Glib found!")
+    message("${GLIB_LIBRARIES}")
+ENDIF()
+
+#gio
+PKG_CHECK_MODULES(GIO gio-2.0)
+include_directories(${GIO_INCLUDE_DIRS})
+link_directories(${GIO_LIBRARY_DIRS})
+add_definitions(${GIO_CFLAGS_OTHER})
+
+IF(GIO_FOUND)
+    message("Gio found!")
+    message("${GIO_LIBRARIES}")
+ENDIF()
+
+
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} WolkAboutCore)
+target_link_libraries(${PROJECT_NAME} WolkAboutCore ${GLIB_LIBRARIES} ${GIO_LIBRARIES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-Wl,-rpath,./")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src")

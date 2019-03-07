@@ -29,7 +29,260 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <fstream>
+#include <iterator>
 
+#include <glib.h>
+#include <gio/gio.h>
+#include <sys/time.h>
+
+#define DEFAULT_TIME 15
+#define BT_ADDRESS_STRING_SIZE 18
+
+
+//using namespace std;
+
+
+GDBusConnection *con;
+gboolean is_scanning;
+std::map<std::string, int> devices;
+wolkabout::DeviceConfiguration appConfiguration;
+std::unique_ptr<wolkabout::Wolk> wolk;
+/*
+bluez functions
+*/
+static int bluez_adapter_call_method(const char *method, GVariant *param)
+{
+    GVariant *result;
+    GError *error = NULL;
+
+    result = g_dbus_connection_call_sync(con,
+                         "org.bluez",
+                    /* TODO Find the adapter path runtime */
+                         "/org/bluez/hci0",
+                         "org.bluez.Adapter1",
+                         method,
+                         param,
+                         NULL,
+                         G_DBUS_CALL_FLAGS_NONE,
+                         -1,
+                         NULL,
+                         &error);
+    if(error != NULL)
+        return 1;
+
+    g_variant_unref(result);
+    return 0;
+}
+
+static void bluez_device_appeared(GDBusConnection *sig,
+                const gchar *sender_name,
+                const gchar *object_path,
+                const gchar *interface,
+                const gchar *signal_name,
+                GVariant *parameters,
+                gpointer user_data)
+{
+    (void)sig;
+    (void)sender_name;
+    (void)object_path;
+    (void)interface;
+    (void)signal_name;
+    (void)user_data;
+
+    GVariantIter *interfaces;
+    const char *object;
+    const gchar *interface_name;
+    GVariant *properties;
+    int rc;
+
+    g_variant_get(parameters, "(&oa{sa{sv}})", &object, &interfaces);
+    while(g_variant_iter_next(interfaces, "{&s@a{sv}}", &interface_name, &properties)) {
+        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
+            const gchar *property_name;
+            GVariantIter i;
+            GVariant *prop_val;
+            const gchar* value;
+            g_variant_iter_init(&i, properties);
+            while(g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
+                if(!(g_strcmp0(property_name, "Address"))){
+                        /*find the device*/
+                        value = g_variant_get_string(prop_val, NULL);
+                        g_print("Adress: %s\n", value);
+                        if( !(devices.find(value) == devices.end()) ){
+                            std::cout<<"Found the device "<<value<<"\n";
+                        /*do whatever*/
+                            devices[value] = 1;
+                        /*remove device*/
+                         rc = bluez_adapter_call_method("RemoveDevice", g_variant_new("(o)", object));
+                         if(rc)
+                            g_print("Not able to remove %s\n", object);
+                    }
+                }
+            g_variant_unref(prop_val);
+        }
+        g_variant_unref(properties);
+    }
+    return;
+}
+
+static void bluez_device_disappeared(GDBusConnection *sig,
+                const gchar *sender_name,
+                const gchar *object_path,
+                const gchar *interface,
+                const gchar *signal_name,
+                GVariant *parameters,
+                gpointer user_data)
+{
+    (void)sig;
+    (void)sender_name;
+    (void)object_path;
+    (void)interface;
+    (void)signal_name;
+
+    GVariantIter *interfaces;
+    const char *object;
+    const gchar *interface_name;
+    char address[BT_ADDRESS_STRING_SIZE] = {'\0'};
+
+    g_variant_get(parameters, "(&oas)", &object, &interfaces);
+    while(g_variant_iter_next(interfaces, "s", &interface_name)) {
+        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
+            int i;
+            char *tmp = g_strstr_len(object, -1, "dev_") + 4;
+
+            for(i = 0; *tmp != '\0'; i++, tmp++) {
+                if(*tmp == '_') {
+                    address[i] = ':';
+                    continue;
+                }
+                address[i] = *tmp;
+            }
+        }
+    }
+    return;
+}
+
+static void bluez_signal_adapter_changed(GDBusConnection *conn,
+                    const gchar *sender,
+                    const gchar *path,
+                    const gchar *interface,
+                    const gchar *signal,
+                    GVariant *params,
+                    void *userdata)
+{
+    (void)conn;
+    (void)sender;
+    (void)path;
+    (void)interface;
+    (void)userdata;
+
+    GVariantIter *properties = NULL;
+    GVariantIter *unknown = NULL;
+    const char *iface;
+    const char *key;
+    GVariant *value = NULL;
+    const gchar *signature = g_variant_get_type_string(params);
+
+    if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
+        g_print("Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
+        goto done;
+    }
+
+    g_variant_get(params, "(&sa{sv}as)", &iface, &properties, &unknown);
+    while(g_variant_iter_next(properties, "{&sv}", &key, &value)) {
+        if(!g_strcmp0(key, "Powered")) {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
+                g_print("Invalid argument type for %s: %s != %s", key,
+                        g_variant_get_type_string(value), "b");
+                goto done;
+            }
+            g_print("Adapter is Powered \"%s\"\n", g_variant_get_boolean(value) ? "on" : "off");
+        }
+        if(!g_strcmp0(key, "Discovering")) {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
+                g_print("Invalid argument type for %s: %s != %s", key,
+                        g_variant_get_type_string(value), "b");
+                goto done;
+            }
+            g_print("Adapter scan \"%s\"\n", g_variant_get_boolean(value) ? "on" : "off");
+        }
+    }
+done:
+    if(properties != NULL)
+        g_variant_iter_free(properties);
+    if(value != NULL)
+        g_variant_unref(value);
+}
+
+static int bluez_adapter_set_property(const char *prop, GVariant *value)
+{
+    GVariant *result;
+    GError *error = NULL;
+
+    result = g_dbus_connection_call_sync(con,
+                         "org.bluez",
+                         "/org/bluez/hci0",
+                         "org.freedesktop.DBus.Properties",
+                         "Set",
+                         g_variant_new("(ssv)", "org.bluez.Adapter1", prop, value),
+                         NULL,
+                         G_DBUS_CALL_FLAGS_NONE,
+                         -1,
+                         NULL,
+                         &error);
+    if(error != NULL)
+        return 1;
+
+    g_variant_unref(result);
+    return 0;
+}
+
+gboolean notify(gpointer user_data)
+{
+    g_print("Time is up!\n");
+
+    if(is_scanning){
+        int rc = bluez_adapter_call_method("StopDiscovery", NULL);
+        if(rc){
+            g_print("Not able to stop scanning\n");
+            return FALSE;
+        }
+        g_usleep(100);
+        is_scanning = FALSE;
+
+        /*publish*/
+        /*for (auto it = devices.begin(); it != devices.end(); it++) {
+            std::cout<<"device: "<<it->first<<" value: "<<it->second<<"\n";
+        }*/
+
+        for(const auto& device : appConfiguration.getDevices()){
+            for (const auto& sensor : device.getManifest().getSensors()){
+                std::string key = device.getKey();
+                wolk->addSensorReading(key, sensor.getReference(), devices[key]);
+            }
+        }
+
+        wolk->publish();
+
+        /*set all to false*/
+        for (auto it = devices.begin(); it != devices.end(); it++) {
+            devices[it->first] = 0;
+        }
+    }
+    else{
+        int rc = bluez_adapter_call_method("StartDiscovery", NULL);
+        if(rc){
+            g_print("Not able to scan for new devices\n");
+            return FALSE;
+        }
+        is_scanning = TRUE;
+    }
+
+    return TRUE;
+}
+
+/**/
 class ActuatorHandler
 {
 public:
@@ -82,6 +335,14 @@ private:
 
 int main(int argc, char** argv)
 {
+
+    GMainLoop *loop;
+    int rc;
+    guint prop_changed;
+    guint iface_added;
+    guint iface_removed;
+    guint time_in_seconds = 0; 
+
     auto logger = std::unique_ptr<wolkabout::ConsoleLogger>(new wolkabout::ConsoleLogger());
     logger->setLogLevel(wolkabout::LogLevel::DEBUG);
     wolkabout::Logger::setInstance(std::move(logger));
@@ -92,7 +353,6 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    wolkabout::DeviceConfiguration appConfiguration;
     try
     {
         appConfiguration = wolkabout::DeviceConfiguration::fromJson(argv[1]);
@@ -101,6 +361,13 @@ int main(int argc, char** argv)
     {
         LOG(ERROR) << "WolkGatewayModule Application: Unable to parse configuration file. Reason: " << e.what();
         return -1;
+    }
+
+    time_in_seconds = std::stoi(argv[2]);
+
+    for (const auto& device : appConfiguration.getDevices())
+    {
+            devices.insert(std::pair<std::string, int>(device.getKey(), 0));
     }
 
     std::map<std::string, std::shared_ptr<ActuatorHandler>> handlers;
@@ -189,7 +456,7 @@ int main(int argc, char** argv)
     auto installer = std::make_shared<FirmwareInstallerImpl>();
     auto provider = std::make_shared<FirmwareVersionProviderImpl>();
 
-    std::unique_ptr<wolkabout::Wolk> wolk =
+    wolk =
       wolkabout::Wolk::newBuilder()
         .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
             std::cout << "Actuation request received - Key: " << key << " Reference: " << reference
@@ -259,40 +526,78 @@ int main(int argc, char** argv)
 
     const unsigned interval = appConfiguration.getInterval();
 
-    while (true)
-    {
-        for (const auto& device : appConfiguration.getDevices())
-        {
-            for (const auto& sensor : device.getManifest().getSensors())
-            {
-                std::vector<int> values;
-
-                if (appConfiguration.getValueGenerator() == wolkabout::ValueGenerator::INCEREMENTAL)
-                {
-                    static int value = 0;
-                    for (size_t i = 0; i < sensor.getSize(); ++i)
-                    {
-                        values.push_back(++value);
-                    }
-                }
-                else
-                {
-                    std::uniform_int_distribution<int> dist(sensor.getMinimum(), sensor.getMaximum());
-
-                    for (size_t i = 0; i < sensor.getSize(); ++i)
-                    {
-                        int rand_num = dist(mt);
-                        values.push_back(rand_num);
-                    }
-                }
-
-                wolk->addSensorReading(device.getKey(), sensor.getReference(), values);
-            }
-        }
-
-        wolk->publish();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+    con = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+    if(con == NULL) {
+        g_print("Not able to get connection to system bus\n");
+        return 1;
     }
+
+    loop = g_main_loop_new(NULL, FALSE);
+    if(time_in_seconds == 0)
+        time_in_seconds = DEFAULT_TIME;
+
+    guint timeout_id = g_timeout_add_seconds(time_in_seconds, notify, NULL);
+
+    prop_changed = g_dbus_connection_signal_subscribe(con,
+                        "org.bluez",
+                        "org.freedesktop.DBus.Properties",
+                        "PropertiesChanged",
+                        NULL,
+                        "org.bluez.Adapter1",
+                        G_DBUS_SIGNAL_FLAGS_NONE,
+                        bluez_signal_adapter_changed,
+                        NULL,
+                        NULL);
+
+    iface_added = g_dbus_connection_signal_subscribe(con,
+                            "org.bluez",
+                            "org.freedesktop.DBus.ObjectManager",
+                            "InterfacesAdded",
+                            NULL,
+                            NULL,
+                            G_DBUS_SIGNAL_FLAGS_NONE,
+                            bluez_device_appeared,
+                            loop,
+                            NULL);
+
+    iface_removed = g_dbus_connection_signal_subscribe(con,
+                            "org.bluez",
+                            "org.freedesktop.DBus.ObjectManager",
+                            "InterfacesRemoved",
+                            NULL,
+                            NULL,
+                            G_DBUS_SIGNAL_FLAGS_NONE,
+                            bluez_device_disappeared,
+                            loop,
+                            NULL);
+
+    rc = bluez_adapter_set_property("Powered", g_variant_new("b", TRUE));
+    if(rc) {
+        g_print("Not able to enable the adapter\n");
+        //goto fail;
+    }
+
+    rc = bluez_adapter_call_method("StartDiscovery", NULL);
+    if(rc) {
+        g_print("Not able to scan for new devices\n");
+        //goto fail;
+    }
+    is_scanning = TRUE;
+
+    g_main_loop_run(loop);
+    rc = bluez_adapter_call_method("StopDiscovery", NULL);
+    if(rc)
+        g_print("Not able to stop scanning\n");
+    g_usleep(100);
+
+    rc = bluez_adapter_set_property("Powered", g_variant_new("b", FALSE));
+    if(rc)
+        g_print("Not able to disable the adapter\n");
+
+    fail:
+    g_dbus_connection_signal_unsubscribe(con, prop_changed);
+    g_dbus_connection_signal_unsubscribe(con, iface_added);
+    g_dbus_connection_signal_unsubscribe(con, iface_removed);
+    g_object_unref(con);
     return 0;
 }

@@ -1,0 +1,16 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<time>60</time>
+<devices>
+	<beacons>
+		<id>0C:F3:EE:B3:B4:35</id>
+		<id>0C:F3:EE:B3:B5:36</id>
+		<id>0C:F3:EE:B3:B5:44</id>
+		<id>0C:F3:EE:B3:B5:53</id>
+		<id>0C:F3:EE:B3:B5:7F</id>
+		<id>0C:F3:EE:B3:B5:8D</id>
+		<id>0C:F3:EE:B3:B5:9A</id>
+		<id>0C:F3:EE:B3:B5:AE</id>
+		<id>0C:F3:EE:B3:B5:C1</id>
+		<id>0C:F3:EE:B3:B6:22</id>
+	</beacons>
+</devices>

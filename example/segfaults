@@ -1,0 +1,14 @@
+2019-03-06 14:43:51[D]Message received on channel: 'p2d/status/d/0C:F3:EE:B3:B4:35' : ''
+fish: './example config.json 25' terminated by signal SIGSEGV (Address boundary error)
+
+2019-03-06 14:43:51[D]Message received on channel: 'p2d/status/d/0C:F3:EE:B3:B4:35' : ''
+fish: './example config.json 25' terminated by signal SIGSEGV (Address boundary error)
+
+2019-03-06 15:02:18[D]Message received on channel: 'p2d/status/d/0C:F3:EE:B3:B4:35' : ''
+fish: './example config.json 15' terminated by signal SIGSEGV (Address boundary error)
+
+
+
+2019-03-06 14:34:17[D]Message received on channel: 'p2d/register_device/d/0C:F3:EE:B3:B4:35' : '{"result":"OK"}'
+2019-03-06 14:34:17[I]Registration response for device '0C:F3:EE:B3:B4:35' received: 0
+fish: './example config.json 25' terminated by signal SIGSEGV (Address boundary error)
