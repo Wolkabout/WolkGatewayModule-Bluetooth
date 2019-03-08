@@ -1,5 +1,5 @@
-# WolkGatewayModule C++
-WolkAbout C++11 Connector library for connecting devices to WolkAbout Gateway.
+# WolkGatewayModule-Bluetooth
+WolkAbout Gateway module for connecting bluetooth devices to WolkAbout Gateway.
 
 Supported protocol(s):
 * JSON_PROTOCOL
@@ -9,7 +9,7 @@ Installing from source
 
 This repository must be cloned from the command line using:
 ```sh
-git clone --recurse-submodules https://github.com/Wolkabout/WolkGatewayModule-Cpp.git
+git clone --recurse-submodules https://github.com/Wolkabout/WolkGatewayModule-Bluetooth.git
 ```
 
 Prerequisite
@@ -131,7 +131,7 @@ wolk->publish();
 Publishing without providing device key publishes all available data,
 whereas publishing with device key only data for the specified device is published
 
-###Bluez
+### Bluez
 In this project we use the Bluez Bluetooth protocol stack for Linux.
 All communication is done via GDbus, a software bus for inter-process communication and remote procedure call.
 
