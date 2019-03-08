@@ -39,25 +39,18 @@
 #define DEFAULT_TIME 15
 #define BT_ADDRESS_STRING_SIZE 18
 
-
-//using namespace std;
-
-
 GDBusConnection *con;
 gboolean is_scanning;
-std::map<std::string, int> devices;
+std::map<std::string, int> device_status;
 wolkabout::DeviceConfiguration appConfiguration;
-/*
-bluez functions
-*/
-static int bluez_adapter_call_method(const char *method, GVariant *param)
+
+static int adapter_call_method(const char *method, GVariant *param)
 {
     GVariant *result;
     GError *error = NULL;
 
     result = g_dbus_connection_call_sync(con,
                          "org.bluez",
-                    /* TODO Find the adapter path runtime */
                          "/org/bluez/hci0",
                          "org.bluez.Adapter1",
                          method,
@@ -74,7 +67,7 @@ static int bluez_adapter_call_method(const char *method, GVariant *param)
     return 0;
 }
 
-static void bluez_device_appeared(GDBusConnection *sig,
+static void device_appeared(GDBusConnection *sig,
                 const gchar *sender_name,
                 const gchar *object_path,
                 const gchar *interface,
@@ -107,15 +100,15 @@ static void bluez_device_appeared(GDBusConnection *sig,
                 if(!(g_strcmp0(property_name, "Address"))){
                         /*find the device*/
                         value = g_variant_get_string(prop_val, NULL);
-                        g_print("Adress: %s\n", value);
-                        if( !(devices.find(value) == devices.end()) ){
-                            std::cout<<"Found the device "<<value<<"\n";
+                        std::cout<<"Found device with adress:"<<value<<"\n";
+                        if( !(device_status.find(value) == device_status.end()) ){
+                            std::cout<<"Found the listed device adress:"<<value<<"\n";
                         /*do whatever*/
-                            devices[value] = 1;
+                            device_status[value] = 1;
                         /*remove device*/
-                         rc = bluez_adapter_call_method("RemoveDevice", g_variant_new("(o)", object));
+                         rc = adapter_call_method("RemoveDevice", g_variant_new("(o)", object));
                          if(rc)
-                            g_print("Not able to remove %s\n", object);
+                            std::cout<<"Unable to remove "<<object<<"\n";
                     }
                 }
             g_variant_unref(prop_val);
@@ -125,7 +118,7 @@ static void bluez_device_appeared(GDBusConnection *sig,
     return;
 }
 
-static void bluez_device_disappeared(GDBusConnection *sig,
+static void device_disappeared(GDBusConnection *sig,
                 const gchar *sender_name,
                 const gchar *object_path,
                 const gchar *interface,
@@ -162,7 +155,7 @@ static void bluez_device_disappeared(GDBusConnection *sig,
     return;
 }
 
-static void bluez_signal_adapter_changed(GDBusConnection *conn,
+static void signal_adapter_changed(GDBusConnection *conn,
                     const gchar *sender,
                     const gchar *path,
                     const gchar *interface,
@@ -184,7 +177,7 @@ static void bluez_signal_adapter_changed(GDBusConnection *conn,
     const gchar *signature = g_variant_get_type_string(params);
 
     if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
-        g_print("Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
+        std::cout<<"Invalid signature for "<<signal<<":"<<signature<<"!= (sa{sv}as)\n";
         goto done;
     }
 
@@ -192,19 +185,17 @@ static void bluez_signal_adapter_changed(GDBusConnection *conn,
     while(g_variant_iter_next(properties, "{&sv}", &key, &value)) {
         if(!g_strcmp0(key, "Powered")) {
             if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
-                g_print("Invalid argument type for %s: %s != %s", key,
-                        g_variant_get_type_string(value), "b");
+                std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
                 goto done;
             }
-            g_print("Adapter is Powered \"%s\"\n", g_variant_get_boolean(value) ? "on" : "off");
+            std::cout<<"Adapter is Powered "<<(g_variant_get_boolean(value) ? "on" : "off")<<"\n";
         }
         if(!g_strcmp0(key, "Discovering")) {
             if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
-                g_print("Invalid argument type for %s: %s != %s", key,
-                        g_variant_get_type_string(value), "b");
+                std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
                 goto done;
             }
-            g_print("Adapter scan \"%s\"\n", g_variant_get_boolean(value) ? "on" : "off");
+            std::cout<<"Adapter scan "<< (g_variant_get_boolean(value) ? "on" : "off")<<"\n";
         }
     }
 done:
@@ -214,7 +205,7 @@ done:
         g_variant_unref(value);
 }
 
-static int bluez_adapter_set_property(const char *prop, GVariant *value)
+static int adapter_set_property(const char *prop, GVariant *value)
 {
     GVariant *result;
     GError *error = NULL;
@@ -237,18 +228,17 @@ static int bluez_adapter_set_property(const char *prop, GVariant *value)
     return 0;
 }
 
-gboolean notify(gpointer user_data)
+gboolean timer_scan_publish(gpointer user_data)
 {
 
-    //std::unique_ptr<wolkabout::Wolk>
     wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
 
-    g_print("Time is up!\n");
+    std::cout<<"Time is up!\n";
 
     if(is_scanning){
-        int rc = bluez_adapter_call_method("StopDiscovery", NULL);
+        int rc = adapter_call_method("StopDiscovery", NULL);
         if(rc){
-            g_print("Not able to stop scanning\n");
+            std::cout<<"Unable to stop scanning\n";
             return FALSE;
         }
         g_usleep(100);
@@ -257,21 +247,21 @@ gboolean notify(gpointer user_data)
         for(const auto& device : appConfiguration.getDevices()){
             for (const auto& sensor : device.getManifest().getSensors()){
                 std::string key = device.getKey();
-                wolk->addSensorReading(key, sensor.getReference(), devices[key]);
+                wolk->addSensorReading(key, sensor.getReference(), device_status[key]);
             }
         }
 
         wolk->publish();
 
         /*set all to false*/
-        for (auto it = devices.begin(); it != devices.end(); it++) {
-            devices[it->first] = 0;
+        for (auto it = device_status.begin(); it != device_status.end(); it++) {
+            device_status[it->first] = 0;
         }
     }
     else{
-        int rc = bluez_adapter_call_method("StartDiscovery", NULL);
+        int rc = adapter_call_method("StartDiscovery", NULL);
         if(rc){
-            g_print("Not able to scan for new devices\n");
+            std::cout<<"Unable to scan for new devices\n";
             return FALSE;
         }
         is_scanning = TRUE;
@@ -280,7 +270,6 @@ gboolean notify(gpointer user_data)
     return TRUE;
 }
 
-/**/
 class ActuatorHandler
 {
 public:
@@ -365,7 +354,7 @@ int main(int argc, char** argv)
 
     for (const auto& device : appConfiguration.getDevices())
     {
-            devices.insert(std::pair<std::string, int>(device.getKey(), 0));
+            device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
     }
 
     std::map<std::string, std::shared_ptr<ActuatorHandler>> handlers;
@@ -526,7 +515,7 @@ int main(int argc, char** argv)
 
     con = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
     if(con == NULL) {
-        g_print("Not able to get connection to system bus\n");
+        std::cout<<"Unable to get connection to system bus\n";
         return 1;
     }
 
@@ -534,7 +523,7 @@ int main(int argc, char** argv)
     if(time_in_seconds == 0)
         time_in_seconds = DEFAULT_TIME;
 
-    guint timeout_id = g_timeout_add_seconds(time_in_seconds, notify, (void*)wolk.get());
+    guint timeout_id = g_timeout_add_seconds(time_in_seconds, timer_scan_publish, (void*)wolk.get());
 
     prop_changed = g_dbus_connection_signal_subscribe(con,
                         "org.bluez",
@@ -543,7 +532,7 @@ int main(int argc, char** argv)
                         NULL,
                         "org.bluez.Adapter1",
                         G_DBUS_SIGNAL_FLAGS_NONE,
-                        bluez_signal_adapter_changed,
+                        signal_adapter_changed,
                         NULL,
                         NULL);
 
@@ -554,7 +543,7 @@ int main(int argc, char** argv)
                             NULL,
                             NULL,
                             G_DBUS_SIGNAL_FLAGS_NONE,
-                            bluez_device_appeared,
+                            device_appeared,
                             loop,
                             NULL);
 
@@ -565,37 +554,22 @@ int main(int argc, char** argv)
                             NULL,
                             NULL,
                             G_DBUS_SIGNAL_FLAGS_NONE,
-                            bluez_device_disappeared,
+                            device_disappeared,
                             loop,
                             NULL);
 
-    rc = bluez_adapter_set_property("Powered", g_variant_new("b", TRUE));
+    rc = adapter_set_property("Powered", g_variant_new("b", TRUE));
     if(rc) {
-        g_print("Not able to enable the adapter\n");
-        //goto fail;
+        std::cout<<"Unable to enable the adapter\n";
     }
 
-    rc = bluez_adapter_call_method("StartDiscovery", NULL);
+    rc = adapter_call_method("StartDiscovery", NULL);
     if(rc) {
-        g_print("Not able to scan for new devices\n");
-        //goto fail;
+        std::cout<<"Unable to scan for new devices\n";
     }
     is_scanning = TRUE;
 
     g_main_loop_run(loop);
-    rc = bluez_adapter_call_method("StopDiscovery", NULL);
-    if(rc)
-        g_print("Not able to stop scanning\n");
-    g_usleep(100);
 
-    rc = bluez_adapter_set_property("Powered", g_variant_new("b", FALSE));
-    if(rc)
-        g_print("Not able to disable the adapter\n");
-
-    fail:
-    g_dbus_connection_signal_unsubscribe(con, prop_changed);
-    g_dbus_connection_signal_unsubscribe(con, iface_added);
-    g_dbus_connection_signal_unsubscribe(con, iface_removed);
-    g_object_unref(con);
     return 0;
 }
