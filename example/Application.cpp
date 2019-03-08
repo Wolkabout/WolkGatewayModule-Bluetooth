@@ -523,7 +523,9 @@ int main(int argc, char** argv)
     if(time_in_seconds == 0)
         time_in_seconds = DEFAULT_TIME;
 
-    guint timeout_id = g_timeout_add_seconds(time_in_seconds, timer_scan_publish, (void*)wolk.get());
+    guint timeout_id = g_timeout_add_seconds(time_in_seconds, 
+                                            timer_scan_publish,
+                                            (void*)wolk.get());
 
     prop_changed = g_dbus_connection_signal_subscribe(con,
                         "org.bluez",
