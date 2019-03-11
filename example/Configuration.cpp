@@ -28,6 +28,23 @@ namespace wolkabout
 {
 using nlohmann::json;
 
+wolkabout::SensorManifest temperatureSensor{"Temperature",          
+                                "T",
+                                DataType::NUMERIC,
+                                "Description",                  
+                                0,                                 
+                                1
+                            };     
+
+DeviceManifest deviceManifest1{"DEVICE_MANIFEST_NAME",
+                                          "DEVICE_MANIFEST_DESCRIPTION",
+                                          "JsonProtocol",
+                                          "",
+                                          {},
+                                          {temperatureSensor},
+                                          {},
+                                          {}};
+
 DeviceConfiguration::DeviceConfiguration(std::string localMqttUri, unsigned interval,
                                          std::vector<wolkabout::Device> devices, ValueGenerator generator)
 : m_localMqttUri(std::move(localMqttUri))
@@ -89,11 +106,11 @@ wolkabout::DeviceConfiguration DeviceConfiguration::fromJson(const std::string& 
     std::vector<Device> devices;
     for (auto& element : j.at("devices"))
     {
-        const auto manifest = element.at("manifest").get<wolkabout::DeviceManifest>();
+        //const auto manifest = element.at("manifest").get<wolkabout::DeviceManifest>();
         const auto name = element.at("name").get<std::string>();
         const auto key = element.at("key").get<std::string>();
 
-        devices.push_back(Device(name, key, manifest));
+        devices.push_back(Device(name, key, deviceManifest1));
     }
 
     return DeviceConfiguration(localMqttUri, interval, devices, valueGenerator.value());

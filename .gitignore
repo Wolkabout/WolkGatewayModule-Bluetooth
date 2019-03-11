@@ -1,5 +1,6 @@
 out/
-
+!out/deviceConfiguration.json
+dependencies/
 *.config
 *.creator
 *.files
