@@ -67,7 +67,7 @@ Example Usage
 
 **Creating devices:**
 Devices are created from the deviceConfiguration.json file. In order to create a new device you should define a device there in the device section.
-```json
+```cpp
 "devices":[
 {"name":"device_name1",     //the name under which the device will be displayed on the platform
 "key":"xx:xx:xx:xx:xx:xx"   //bluetooth address in xx:xx:xx:xx:xx:xx format. 
