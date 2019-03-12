@@ -33,8 +33,8 @@ With the exception of bluez the former can be installed on Debian based system f
 apt-get install autotools-dev autoconf libtool m4 zlib1g-dev cmake python python-pip && python -m pip install conan
 ```
 
-To install bluez 5.5 with all it's dependencies you can run the install_bluez.sh script 
-located in the /dependencies folder of this project.
+To install bluez 5.5 with all it's dependencies you can run the `install_bluez.sh` script 
+located in the `dependencies` folder of this project.
 After installing bluez it's recommended you reboot your system and check whether it was updated by invoking
 ```sh
 bluetoothctl -v
@@ -66,7 +66,7 @@ Example Usage
 -------------
 
 **Creating devices:**
-Devices are created from the deviceConfiguration.json file. In order to create a new device you should define a device there in the device section.
+Devices are created from the `deviceConfiguration.json` file. In order to create a new device you should define a device there in the device section.
 ```cpp
 "devices":[
 {"name":"device_name1",     //the name under which the device will be displayed on the platform
@@ -77,7 +77,7 @@ Devices are created from the deviceConfiguration.json file. In order to create a
 }
 ]
 ```
-All devices share a common template of one numeric sensor defined in the Configuration.cpp file.
+All devices share a common template of one numeric sensor defined in the `Configuration.cpp` file.
 
 **Publishing sensor readings:**
 
