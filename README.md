@@ -1,7 +1,7 @@
 # WolkGatewayModule-Bluetooth
 WolkAbout Gateway module for connecting bluetooth devices to WolkAbout Gateway.
 This module was tested on Raspberry Pi 3 Model B+ running Raspbian.
-It should work on any bluetooth enabled Linux device as it uses Bluez - the default Linux bluetooth stack. 
+It should work on any bluetooth enabled Linux device as it uses Bluez - the default Linux bluetooth stack. It uses the hci0 bluetooth adapter.
 
 Supported protocol(s):
 * JSON_PROTOCOL
@@ -67,9 +67,9 @@ The example should be run with two arguments - first one being the `deviceConfig
 being the interval of the bluetooth scan in seconds(scan goes on/off alternately on the specified timeframe).
 eg. 
 ```sh
-./example deviceConfiguration.json 15
+sudo ./example deviceConfiguration.json 15
 ```
-for a scan interval of 15 seconds.
+for a scan interval of 15 seconds. Sudo is necessary in order to access the adapter. 
 
 The example will then scan for nearby bluetooth devices, detect if one of the devices that were specified in the .json file
 by their key is present and if it is it will publish a `1` to the Wolkabout platform. If the device wasn't spotted in the timeframe
