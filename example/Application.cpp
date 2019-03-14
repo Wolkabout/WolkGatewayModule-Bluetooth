@@ -334,9 +334,9 @@ int main(int argc, char** argv)
     logger->setLogLevel(wolkabout::LogLevel::DEBUG);
     wolkabout::Logger::setInstance(std::move(logger));
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath]";
+        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath] [scanInterval]";
         return -1;
     }
 
@@ -350,7 +350,16 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    time_in_seconds = std::stoi(argv[2]);
+    try
+    {
+       time_in_seconds = std::stoi(argv[2]);
+    }
+    catch (std::logic_error& e)
+    {
+        LOG(ERROR) << "WolkGatewayModule Application: Unable to set scan interval. Reason: " << e.what();
+        return -1;
+    }
+
 
     for (const auto& device : appConfiguration.getDevices())
     {
