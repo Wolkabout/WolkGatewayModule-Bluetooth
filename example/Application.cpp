@@ -178,7 +178,11 @@ static void signal_adapter_changed(GDBusConnection *conn,
 
     if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
         std::cout<<"Invalid signature for "<<signal<<":"<<signature<<"!= (sa{sv}as)\n";
-        goto done;
+        if(properties != NULL)
+            g_variant_iter_free(properties);
+        if(value != NULL)
+            g_variant_unref(value);
+        return;
     }
 
     g_variant_get(params, "(&sa{sv}as)", &iface, &properties, &unknown);
@@ -186,23 +190,27 @@ static void signal_adapter_changed(GDBusConnection *conn,
         if(!g_strcmp0(key, "Powered")) {
             if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
                 std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
-                goto done;
+                if(properties != NULL)
+                    g_variant_iter_free(properties);
+                if(value != NULL)
+                    g_variant_unref(value);
+                return;
             }
             std::cout<<"Adapter is Powered "<<(g_variant_get_boolean(value) ? "on" : "off")<<"\n";
         }
         if(!g_strcmp0(key, "Discovering")) {
             if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
                 std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
-                goto done;
+                if(properties != NULL)
+                    g_variant_iter_free(properties);
+                if(value != NULL)
+                    g_variant_unref(value);
+                return;
             }
             std::cout<<"Adapter scan "<< (g_variant_get_boolean(value) ? "on" : "off")<<"\n";
         }
     }
-done:
-    if(properties != NULL)
-        g_variant_iter_free(properties);
-    if(value != NULL)
-        g_variant_unref(value);
+
 }
 
 static int adapter_set_property(const char *prop, GVariant *value)
