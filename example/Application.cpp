@@ -44,6 +44,16 @@ gboolean is_scanning;
 std::map<std::string, int> device_status;
 wolkabout::DeviceConfiguration appConfiguration;
 
+void free_properties(GVariantIter* properties, GVariant* value)
+{
+    if(properties != NULL)
+        g_variant_iter_free(properties);
+    if(value != NULL)
+        g_variant_unref(value);
+
+    return;
+}
+
 static int adapter_call_method(const char *method, GVariant *param)
 {
     GVariant *result;
@@ -178,7 +188,8 @@ static void signal_adapter_changed(GDBusConnection *conn,
 
     if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
         std::cout<<"Invalid signature for "<<signal<<":"<<signature<<"!= (sa{sv}as)\n";
-        goto done;
+        free_properties(properties, value);
+        return;
     }
 
     g_variant_get(params, "(&sa{sv}as)", &iface, &properties, &unknown);
@@ -186,23 +197,21 @@ static void signal_adapter_changed(GDBusConnection *conn,
         if(!g_strcmp0(key, "Powered")) {
             if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
                 std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
-                goto done;
+                free_properties(properties, value);
+                return;
             }
             std::cout<<"Adapter is Powered "<<(g_variant_get_boolean(value) ? "on" : "off")<<"\n";
         }
         if(!g_strcmp0(key, "Discovering")) {
             if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
                 std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
-                goto done;
+                free_properties(properties, value);
+                return;
             }
             std::cout<<"Adapter scan "<< (g_variant_get_boolean(value) ? "on" : "off")<<"\n";
         }
     }
-done:
-    if(properties != NULL)
-        g_variant_iter_free(properties);
-    if(value != NULL)
-        g_variant_unref(value);
+
 }
 
 static int adapter_set_property(const char *prop, GVariant *value)
@@ -334,9 +343,9 @@ int main(int argc, char** argv)
     logger->setLogLevel(wolkabout::LogLevel::DEBUG);
     wolkabout::Logger::setInstance(std::move(logger));
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath]";
+        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath] [scanInterval]";
         return -1;
     }
 
@@ -350,7 +359,16 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    time_in_seconds = std::stoi(argv[2]);
+    try
+    {
+       time_in_seconds = std::stoi(argv[2]);
+    }
+    catch (std::logic_error& e)
+    {
+        LOG(ERROR) << "WolkGatewayModule Application: Unable to set scan interval. Reason: " << e.what();
+        return -1;
+    }
+
 
     for (const auto& device : appConfiguration.getDevices())
     {
@@ -520,7 +538,7 @@ int main(int argc, char** argv)
     }
 
     loop = g_main_loop_new(NULL, FALSE);
-    if(time_in_seconds == 0)
+    if(time_in_seconds <= 0)
         time_in_seconds = DEFAULT_TIME;
 
     guint timeout_id = g_timeout_add_seconds(time_in_seconds, 
