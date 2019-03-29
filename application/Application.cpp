@@ -383,6 +383,10 @@ int main(int argc, char** argv)
 
     std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
+        .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
+        })
+        .actuatorStatusProvider([&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {
+        })
         .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus {
             auto it =
               std::find_if(appConfiguration.getDevices().begin(), appConfiguration.getDevices().end(),
