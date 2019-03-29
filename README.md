@@ -16,7 +16,7 @@ git clone --recurse-submodules https://github.com/Wolkabout/WolkGatewayModule-Bl
 
 Prerequisite
 ------
-Following tools/libraries are required in order to build WolkAbout C++ connector
+Following tools/libraries are required in order to build this project:
 
 * cmake - version 3.5 or later
 * autotools

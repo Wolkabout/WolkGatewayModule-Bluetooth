@@ -16,10 +16,10 @@
 
 #include "Configuration.h"
 #include "Wolk.h"
-#include "model/DeviceManifest.h"
+#include "model/DeviceTemplate.h"
 #include "utilities/ConsoleLogger.h"
 
-#include "model/SensorManifest.h"
+#include "model/SensorTemplate.h"
 
 #include <algorithm>
 #include <chrono>
@@ -254,7 +254,7 @@ gboolean timer_scan_publish(gpointer user_data)
         is_scanning = FALSE;
 
         for(const auto& device : appConfiguration.getDevices()){
-            for (const auto& sensor : device.getManifest().getSensors()){
+            for (const auto& sensor : device.getTemplate().getSensors()){
                 std::string key = device.getKey();
                 wolk->addSensorReading(key, sensor.getReference(), device_status[key]);
             }
@@ -278,56 +278,6 @@ gboolean timer_scan_publish(gpointer user_data)
 
     return TRUE;
 }
-
-class ActuatorHandler
-{
-public:
-    virtual ~ActuatorHandler() = default;
-    virtual std::string getValue() = 0;
-    virtual void setValue(std::string value) = 0;
-};
-
-template <class T> class ActuatorTemplateHandler : public ActuatorHandler
-{
-public:
-    void setValue(std::string value) override
-    {
-        try
-        {
-            m_value = std::stod(value);
-        }
-        catch (...)
-        {
-        }
-    }
-
-    std::string getValue() override { return std::to_string(m_value); }
-
-private:
-    T m_value;
-};
-
-template <> class ActuatorTemplateHandler<bool> : public ActuatorHandler
-{
-public:
-    void setValue(std::string value) override { m_value = value == "true"; }
-
-    std::string getValue() override { return m_value ? "true" : "false"; }
-
-private:
-    bool m_value;
-};
-
-template <> class ActuatorTemplateHandler<std::string> : public ActuatorHandler
-{
-public:
-    void setValue(std::string value) override { m_value = value; }
-
-    std::string getValue() override { return m_value; }
-
-private:
-    std::string m_value;
-};
 
 int main(int argc, char** argv)
 {
@@ -375,43 +325,13 @@ int main(int argc, char** argv)
             device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
     }
 
-    std::map<std::string, std::shared_ptr<ActuatorHandler>> handlers;
-
-    for (const auto& device : appConfiguration.getDevices())
-    {
-        for (const auto& actuator : device.getManifest().getActuators())
-        {
-            std::shared_ptr<ActuatorHandler> handler;
-            switch (actuator.getDataType())
-            {
-            case wolkabout::DataType::BOOLEAN:
-            {
-                handler.reset(new ActuatorTemplateHandler<bool>());
-                break;
-            }
-            case wolkabout::DataType::NUMERIC:
-            {
-                handler.reset(new ActuatorTemplateHandler<double>());
-                break;
-            }
-            case wolkabout::DataType::STRING:
-            {
-                handler.reset(new ActuatorTemplateHandler<std::string>());
-                break;
-            }
-            }
-
-            handlers[device.getKey() + "_" + actuator.getReference()] = handler;
-        }
-    }
-
     static std::map<std::string, std::vector<wolkabout::ConfigurationItem>> localConfiguration;
 
     static std::map<std::string, std::tuple<int, bool>> m_firmwareStatuses;
 
     for (const auto& device : appConfiguration.getDevices())
     {
-        for (const auto& conf : device.getManifest().getConfigurations())
+        for (const auto& conf : device.getTemplate().getConfigurations())
         {
             localConfiguration[device.getKey()].push_back(wolkabout::ConfigurationItem{
               std::vector<std::string>(conf.getSize(), conf.getDefaultValue()), conf.getReference()});
@@ -463,29 +383,6 @@ int main(int argc, char** argv)
 
     std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
-        .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
-            std::cout << "Actuation request received - Key: " << key << " Reference: " << reference
-                      << " value: " << value << std::endl;
-
-            std::string handlerId = key + "_" + reference;
-
-            auto it = handlers.find(handlerId);
-            if (it != handlers.end())
-            {
-                it->second->setValue(value);
-            }
-        })
-        .actuatorStatusProvider([&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {
-            std::string handlerId = key + "_" + reference;
-
-            auto it = handlers.find(handlerId);
-            if (it != handlers.end())
-            {
-                return wolkabout::ActuatorStatus(it->second->getValue(), wolkabout::ActuatorStatus::State::READY);
-            }
-
-            return wolkabout::ActuatorStatus("", wolkabout::ActuatorStatus::State::READY);
-        })
         .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus {
             auto it =
               std::find_if(appConfiguration.getDevices().begin(), appConfiguration.getDevices().end(),

@@ -1,1 +1,4 @@
 
+[submodule "WolkGatewayModule-Cpp"]
+	path = WolkGatewayModule-Cpp
+	url = https://github.com/Wolkabout/WolkGatewayModule-Cpp
