@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-#include "Configuration.h"
-#include "Wolk.h"
-#include "model/DeviceTemplate.h"
-#include "utilities/ConsoleLogger.h"
-
-#include "model/SensorTemplate.h"
-
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -35,6 +28,12 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include <sys/time.h>
+
+#include "Configuration.h"
+#include "Wolk.h"
+#include "model/DeviceTemplate.h"
+#include "utilities/ConsoleLogger.h"
+#include "model/SensorTemplate.h"
 
 #define DEFAULT_TIME 15
 #define BT_ADDRESS_STRING_SIZE 18
@@ -75,6 +74,78 @@ static int adapter_call_method(const char *method, GVariant *param)
 
     g_variant_unref(result);
     return 0;
+}
+
+static int adapter_set_property(const char *prop, GVariant *value)
+{
+    GVariant *result;
+    GError *error = NULL;
+
+    result = g_dbus_connection_call_sync(con,
+                         "org.bluez",
+                         "/org/bluez/hci0",
+                         "org.freedesktop.DBus.Properties",
+                         "Set",
+                         g_variant_new("(ssv)", "org.bluez.Adapter1", prop, value),
+                         NULL,
+                         G_DBUS_CALL_FLAGS_NONE,
+                         -1,
+                         NULL,
+                         &error);
+    if(error != NULL)
+        return 1;
+
+    g_variant_unref(result);
+    return 0;
+}
+
+static void signal_adapter_changed(GDBusConnection *conn,
+                    const gchar *sender,
+                    const gchar *path,
+                    const gchar *interface,
+                    const gchar *signal,
+                    GVariant *params,
+                    void *userdata)
+{
+    (void)conn;
+    (void)sender;
+    (void)path;
+    (void)interface;
+    (void)userdata;
+
+    GVariantIter *properties = NULL;
+    GVariantIter *unknown = NULL;
+    const char *iface;
+    const char *key;
+    GVariant *value = NULL;
+    const gchar *signature = g_variant_get_type_string(params);
+
+    if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
+        std::cout<<"Invalid signature for "<<signal<<":"<<signature<<"!= (sa{sv}as)\n";
+        free_properties(properties, value);
+        return;
+    }
+
+    g_variant_get(params, "(&sa{sv}as)", &iface, &properties, &unknown);
+    while(g_variant_iter_next(properties, "{&sv}", &key, &value)) {
+        if(!g_strcmp0(key, "Powered")) {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
+                std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
+                free_properties(properties, value);
+                return;
+            }
+            std::cout<<"Adapter is Powered "<<(g_variant_get_boolean(value) ? "on" : "off")<<"\n";
+        }
+        if(!g_strcmp0(key, "Discovering")) {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
+                std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
+                free_properties(properties, value);
+                return;
+            }
+            std::cout<<"Adapter scan "<< (g_variant_get_boolean(value) ? "on" : "off")<<"\n";
+        }
+    }
+
 }
 
 static void device_appeared(GDBusConnection *sig,
@@ -165,78 +236,6 @@ static void device_disappeared(GDBusConnection *sig,
     return;
 }
 
-static void signal_adapter_changed(GDBusConnection *conn,
-                    const gchar *sender,
-                    const gchar *path,
-                    const gchar *interface,
-                    const gchar *signal,
-                    GVariant *params,
-                    void *userdata)
-{
-    (void)conn;
-    (void)sender;
-    (void)path;
-    (void)interface;
-    (void)userdata;
-
-    GVariantIter *properties = NULL;
-    GVariantIter *unknown = NULL;
-    const char *iface;
-    const char *key;
-    GVariant *value = NULL;
-    const gchar *signature = g_variant_get_type_string(params);
-
-    if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
-        std::cout<<"Invalid signature for "<<signal<<":"<<signature<<"!= (sa{sv}as)\n";
-        free_properties(properties, value);
-        return;
-    }
-
-    g_variant_get(params, "(&sa{sv}as)", &iface, &properties, &unknown);
-    while(g_variant_iter_next(properties, "{&sv}", &key, &value)) {
-        if(!g_strcmp0(key, "Powered")) {
-            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
-                std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
-                free_properties(properties, value);
-                return;
-            }
-            std::cout<<"Adapter is Powered "<<(g_variant_get_boolean(value) ? "on" : "off")<<"\n";
-        }
-        if(!g_strcmp0(key, "Discovering")) {
-            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
-                std::cout<<"Invalid argument type for "<<key<<":"<<g_variant_get_type_string(value)<< "!= b\n";
-                free_properties(properties, value);
-                return;
-            }
-            std::cout<<"Adapter scan "<< (g_variant_get_boolean(value) ? "on" : "off")<<"\n";
-        }
-    }
-
-}
-
-static int adapter_set_property(const char *prop, GVariant *value)
-{
-    GVariant *result;
-    GError *error = NULL;
-
-    result = g_dbus_connection_call_sync(con,
-                         "org.bluez",
-                         "/org/bluez/hci0",
-                         "org.freedesktop.DBus.Properties",
-                         "Set",
-                         g_variant_new("(ssv)", "org.bluez.Adapter1", prop, value),
-                         NULL,
-                         G_DBUS_CALL_FLAGS_NONE,
-                         -1,
-                         NULL,
-                         &error);
-    if(error != NULL)
-        return 1;
-
-    g_variant_unref(result);
-    return 0;
-}
-
 gboolean timer_scan_publish(gpointer user_data)
 {
 
@@ -287,13 +286,12 @@ int main(int argc, char** argv)
     guint prop_changed;
     guint iface_added;
     guint iface_removed;
-    guint time_in_seconds = 0; 
 
     auto logger = std::unique_ptr<wolkabout::ConsoleLogger>(new wolkabout::ConsoleLogger());
     logger->setLogLevel(wolkabout::LogLevel::DEBUG);
     wolkabout::Logger::setInstance(std::move(logger));
 
-    if (argc < 3)
+    if (argc < 2)
     {
         LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath] [scanInterval]";
         return -1;
@@ -309,77 +307,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    try
-    {
-       time_in_seconds = std::stoi(argv[2]);
-    }
-    catch (std::logic_error& e)
-    {
-        LOG(ERROR) << "WolkGatewayModule Application: Unable to set scan interval. Reason: " << e.what();
-        return -1;
-    }
-
-
     for (const auto& device : appConfiguration.getDevices())
     {
             device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
     }
-
-    static std::map<std::string, std::vector<wolkabout::ConfigurationItem>> localConfiguration;
-
-    static std::map<std::string, std::tuple<int, bool>> m_firmwareStatuses;
-
-    for (const auto& device : appConfiguration.getDevices())
-    {
-        for (const auto& conf : device.getTemplate().getConfigurations())
-        {
-            localConfiguration[device.getKey()].push_back(wolkabout::ConfigurationItem{
-              std::vector<std::string>(conf.getSize(), conf.getDefaultValue()), conf.getReference()});
-        }
-
-        m_firmwareStatuses[device.getKey()] = std::make_tuple(1, true);
-    }
-
-    class FirmwareInstallerImpl : public wolkabout::FirmwareInstaller
-    {
-    public:
-        void install(const std::string& deviceKey, const std::string& firmwareFile,
-                     std::function<void(const std::string& deviceKey)> onSuccess,
-                     std::function<void(const std::string& deviceKey)> onFail) override
-        {
-            LOG(INFO) << "Installing firmware: " << firmwareFile << ", for device " << deviceKey;
-
-            auto it = m_firmwareStatuses.find(deviceKey);
-            if (it != m_firmwareStatuses.end() && std::get<1>(it->second))
-            {
-                ++(std::get<0>(it->second));
-                std::this_thread::sleep_for(std::chrono::seconds(10));
-                onSuccess(deviceKey);
-            }
-            else
-            {
-                onFail(deviceKey);
-            }
-        }
-    };
-
-    class FirmwareVersionProviderImpl : public wolkabout::FirmwareVersionProvider
-    {
-    public:
-        std::string getFirmwareVersion(const std::string& deviceKey)
-        {
-            auto it = m_firmwareStatuses.find(deviceKey);
-            if (it != m_firmwareStatuses.end())
-            {
-                return std::to_string(std::get<0>(it->second)) + ".0.0";
-            }
-
-            return "";
-        }
-    };
-
-    auto installer = std::make_shared<FirmwareInstallerImpl>();
-    auto provider = std::make_shared<FirmwareVersionProviderImpl>();
 
     std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
@@ -401,22 +332,10 @@ int main(int argc, char** argv)
         })
         .configurationHandler(
           [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {
-              auto it = localConfiguration.find(deviceKey);
-              if (it != localConfiguration.end())
-              {
-                  localConfiguration[deviceKey] = configuration;
-              }
           })
         .configurationProvider([&](const std::string& deviceKey) -> std::vector<wolkabout::ConfigurationItem> {
-            auto it = localConfiguration.find(deviceKey);
-            if (it != localConfiguration.end())
-            {
-                return localConfiguration[deviceKey];
-            }
-
             return {};
         })
-        .withFirmwareUpdate(installer, provider)
         .host(appConfiguration.getLocalMqttUri())
         .build();
 
@@ -430,7 +349,7 @@ int main(int argc, char** argv)
     std::random_device rd;
     std::mt19937 mt(rd());
 
-    const unsigned interval = appConfiguration.getInterval();
+    unsigned interval = appConfiguration.getInterval();
 
     con = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
     if(con == NULL) {
@@ -439,10 +358,10 @@ int main(int argc, char** argv)
     }
 
     loop = g_main_loop_new(NULL, FALSE);
-    if(time_in_seconds <= 0)
-        time_in_seconds = DEFAULT_TIME;
+    if(interval <= 0)
+        interval = DEFAULT_TIME;
 
-    guint timeout_id = g_timeout_add_seconds(time_in_seconds, 
+    guint timeout_id = g_timeout_add_seconds(interval, 
                                             timer_scan_publish,
                                             (void*)wolk.get());
 
