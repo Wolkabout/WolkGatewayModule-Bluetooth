@@ -34,6 +34,7 @@
 #include "model/DeviceTemplate.h"
 #include "utilities/ConsoleLogger.h"
 #include "model/SensorTemplate.h"
+#include "utils.h"
 
 #define DEFAULT_TIME 15
 #define BT_ADDRESS_STRING_SIZE 18
@@ -42,16 +43,6 @@ GDBusConnection *con;
 gboolean is_scanning;
 std::map<std::string, int> device_status;
 wolkabout::DeviceConfiguration appConfiguration;
-
-void free_properties(GVariantIter* properties, GVariant* value)
-{
-    if(properties != NULL)
-        g_variant_iter_free(properties);
-    if(value != NULL)
-        g_variant_unref(value);
-
-    return;
-}
 
 static int adapter_call_method(const char *method, GVariant *param)
 {

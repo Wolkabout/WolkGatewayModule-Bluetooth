@@ -52,7 +52,7 @@ add_subdirectory(WolkGatewayModule-Cpp lib)
 include_directories("src")
 
 file(GLOB_RECURSE HEADER_FILES "src/*.h" "src/*.hpp")
-file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "example/*.cpp")
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "application/*.cpp")
 
 #glib
 FIND_PACKAGE(PkgConfig)
