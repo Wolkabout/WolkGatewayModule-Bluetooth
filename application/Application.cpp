@@ -77,15 +77,15 @@ static void device_appeared(GDBusConnection *sig,
                 if(!(g_strcmp0(property_name, "Address"))){
                         /*find the device*/
                         value = g_variant_get_string(prop_val, NULL);
-                        std::cout<<"Found device with adress:"<<value<<"\n";
+                        LOG(DEBUG)<<"Found device with adress:"<<value<<"\n";
                         if( !(device_status.find(value) == device_status.end()) ){
-                            std::cout<<"Found the listed device adress:"<<value<<"\n";
+                            LOG(INFO)<<"Found the listed device adress:"<<value<<"\n";
                         /*do whatever*/
                             device_status[value] = 1;
                         /*remove device*/
                          rc = adapter.remove_device(object);
                          if(rc)
-                            std::cout<<"Unable to remove "<<object<<"\n";
+                            LOG(ERROR)<<"Unable to remove "<<object<<"\n";
                     }
                 }
             g_variant_unref(prop_val);
@@ -137,12 +137,12 @@ gboolean timer_scan_publish(gpointer user_data)
 
     wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
 
-    std::cout<<"Time is up!\n";
+    LOG(DEBUG)<<"Time is up!\n";
 
     if(adapter.is_scanning){
         int rc = adapter.stop_scan();
         if(rc){
-            std::cout<<"Unable to stop scanning\n";
+            LOG(ERROR)<<"Unable to stop scanning\n";
             return FALSE;
         }
         g_usleep(100);
@@ -164,7 +164,7 @@ gboolean timer_scan_publish(gpointer user_data)
     else{
         int rc = adapter.start_scan();
         if(rc){
-            std::cout<<"Unable to scan for new devices\n";
+            LOG(ERROR)<<"Unable to scan for new devices\n";
             return FALSE;
         }
     }
@@ -250,12 +250,12 @@ int main(int argc, char** argv)
 
     rc = adapter.power_on();
     if(rc) {
-        std::cout<<"Unable to enable the adapter\n";
+        LOG(ERROR)<<"Unable to enable the adapter\n";
     }
 
     rc = adapter.start_scan();
     if(rc) {
-        std::cout<<"Unable to scan for new devices\n";
+        LOG(ERROR)<<"Unable to scan for new devices\n";
     }
 
     adapter.run_loop();
