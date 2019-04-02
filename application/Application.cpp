@@ -37,7 +37,6 @@
 #include "Adapter.h"
 #include "utils.h"
 
-#define DEFAULT_TIME 15
 #define BT_ADDRESS_STRING_SIZE 18
 
 wolkabout::Adapter adapter; 
@@ -242,13 +241,7 @@ int main(int argc, char** argv)
 
     wolk->connect();
 
-    std::random_device rd;
-    std::mt19937 mt(rd());
-
     unsigned interval = appConfiguration.getInterval();
-
-    if(interval <= 0)
-        interval = DEFAULT_TIME;
 
     guint timeout_id = g_timeout_add_seconds(interval, 
                                             timer_scan_publish,
@@ -269,7 +262,6 @@ int main(int argc, char** argv)
     }
     is_scanning = TRUE;
 
-    //run loop
     adapter.run_loop();
 
     return 0;
