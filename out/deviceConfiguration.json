@@ -2,8 +2,8 @@
 "host":"tcp://localhost:1883",
 "readingsInterval":15,
 "devices":[
-{"name":"Lazar",
-"key":"D8:6C:02:0D:2B:B1"
+{"name":"name_on_platform",
+"key":"XX:XX:XX:XX:XX:XX"
 }
 ]
 }
