@@ -93,10 +93,10 @@ Devices are created from the `deviceConfiguration.json` file. In order to create
 ```cpp
 "devices":[
 {"name":"device_name1",     //the name under which the device will be displayed on the platform
-"key":"xx:xx:xx:xx:xx:xx"   //bluetooth address in xx:xx:xx:xx:xx:xx format. 
+"key":"XX:XX:XX:XX:XX:XX"   //bluetooth address in "XX:XX:XX:XX:XX:XX" format(uppercase). 
 },
 {"name":"device_name2",
-"key":"xx:xx:xx:xx:xx:xx"
+"key":"XX:XX:XX:XX:XX:XX"
 }
 ]
 ```
