@@ -114,6 +114,8 @@ static void device_disappeared(GDBusConnection *sig,
     const gchar *interface_name;
     char address[BT_ADDRESS_STRING_SIZE] = {'\0'};
 
+    LOG(INFO)<<"Device removed!";
+
     g_variant_get(parameters, "(&oas)", &object, &interfaces);
     while(g_variant_iter_next(interfaces, "s", &interface_name)) {
         if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
@@ -127,6 +129,7 @@ static void device_disappeared(GDBusConnection *sig,
                 }
                 address[i] = *tmp;
             }
+            LOG(INFO)<<"Address "<<address<<"\n";
         }
     }
     return;
@@ -147,11 +150,8 @@ gboolean timer_scan_publish(gpointer user_data)
         }
         g_usleep(100);
 
-        for(const auto& device : appConfiguration.getDevices()){
-            for (const auto& sensor : device.getTemplate().getSensors()){
-                std::string key = device.getKey();
-                wolk->addSensorReading(key, sensor.getReference(), device_status[key]);
-            }
+        for(auto it = device_status.begin(); it != device_status.end(); it++){
+            wolk->addSensorReading(it->first, "P", it->second);
         }
 
         wolk->publish();
