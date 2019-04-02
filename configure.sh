@@ -18,6 +18,6 @@ cp tools/git/pre-commit .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 
 pushd out
-conan install -s compiler.libcxx=libstdc++11 --build=missing ..
+conan install -s compiler.libcxx=libstdc++11 --build=missing ../WolkGatewayModule-Cpp/
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug ..
 popd

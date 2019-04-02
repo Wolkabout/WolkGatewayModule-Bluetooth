@@ -15,7 +15,7 @@
  */
 
 #include "model/Device.h"
-#include "model/DeviceManifest.h"
+#include "model/DeviceTemplate.h"
 #include <string>
 #include <vector>
 

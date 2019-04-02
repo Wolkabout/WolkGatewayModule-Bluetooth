@@ -16,7 +16,7 @@ git clone --recurse-submodules https://github.com/Wolkabout/WolkGatewayModule-Bl
 
 Prerequisite
 ------
-Following tools/libraries are required in order to build WolkAbout C++ connector
+Following tools/libraries are required in order to build this project:
 
 * cmake - version 3.5 or later
 * autotools
@@ -63,13 +63,12 @@ If it's not running you can start it by invoking
 ```sh
 sudo systemctl start bluetooth
 ```
-The example should be run with two arguments - first one being the `deviceConfiguration.json` file and the second one
-being the interval of the bluetooth scan in seconds(scan goes on/off alternately on the specified timeframe).
+The example should be run using the `deviceConfiguration.json` file.
 eg. 
 ```sh
-sudo ./example deviceConfiguration.json 15
+sudo ./example deviceConfiguration.json
 ```
-for a scan interval of 15 seconds. Sudo is necessary in order to access the adapter. 
+Sudo is necessary in order to access the adapter. 
 
 The example will then scan for nearby bluetooth devices, detect if one of the devices that were specified in the .json file
 by their key is present and if it is it will publish a `1` to the Wolkabout platform. If the device wasn't spotted in the timeframe
@@ -101,3 +100,9 @@ Devices are created from the `deviceConfiguration.json` file. In order to create
 ]
 ```
 All devices share a common template of one numeric sensor defined in the `Configuration.cpp` file.
+
+**Setting the scan time**
+Scan time is set in the `deviceConfiguration.json` file by changing the `readingsInterval` field.
+```cpp
+"readingsInterval": 15
+```

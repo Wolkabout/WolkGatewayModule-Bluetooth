@@ -13,7 +13,7 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.5)
-project(WolkGatewayModule C CXX)
+project(WolkGatewayBluetoothModule C CXX)
 
 set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
 
@@ -45,14 +45,14 @@ set(SSL_LIBS "${CONAN_LIBS}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
-# WolkAbout c++ SDK
-add_subdirectory(WolkSDK-Cpp)
+# WolkAbout C++ Module
+add_subdirectory(WolkGatewayModule-Cpp lib)
 
-# WolkAbout c++ Connector
+# WolkAbout Bluetooth Module
 include_directories("src")
 
 file(GLOB_RECURSE HEADER_FILES "src/*.h" "src/*.hpp")
-file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "example/*.cpp")
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "application/*.cpp")
 
 #glib
 FIND_PACKAGE(PkgConfig)
@@ -79,30 +79,19 @@ ENDIF()
 
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} WolkAboutCore ${GLIB_LIBRARIES} ${GIO_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} WolkGatewayModule ${GLIB_LIBRARIES} ${GIO_LIBRARIES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-Wl,-rpath,./")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src")
 
-# Tests
-include_directories("tests")
-include_directories(SYSTEM "${CONAN_INCLUDE_DIRS_GTEST}")
-
-file(GLOB_RECURSE TESTS_HEADER_FILES "tests/*.h" "tests/*.hpp")
-file(GLOB_RECURSE TESTS_SOURCE_FILES "tests/*.cpp")
-
-add_executable(tests ${TESTS_SOURCE_FILES})
-target_link_libraries(tests gmock_main gmock gtest ${PROJECT_NAME})
-set_target_properties(tests PROPERTIES LINK_FLAGS "-Wl,-rpath,./lib")
-
 # Example
-include_directories("example")
+include_directories("application")
 
-file(GLOB_RECURSE EXAMPLE_HEADER_FILES "example/*.h")
-file(GLOB_RECURSE EXAMPLE_SOURCE_FILES "example/*.cpp")
+file(GLOB_RECURSE EXAMPLE_HEADER_FILES "application/*.h")
+file(GLOB_RECURSE EXAMPLE_SOURCE_FILES "application/*.cpp")
 
-add_executable(example ${EXAMPLE_SOURCE_FILES})
-target_link_libraries(example ${PROJECT_NAME})
-set_target_properties(example PROPERTIES LINK_FLAGS "-Wl,-rpath,./lib")
+add_executable(bluetoothModule ${EXAMPLE_SOURCE_FILES})
+target_link_libraries(bluetoothModule ${PROJECT_NAME})
+set_target_properties(bluetoothModule PROPERTIES LINK_FLAGS "-Wl,-rpath,./lib")
 
 add_subdirectory(cmake)
