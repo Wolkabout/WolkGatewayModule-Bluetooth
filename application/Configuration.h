@@ -53,4 +53,5 @@ private:
 
     ValueGenerator m_valueGenerator;
 };
+    
 }    // namespace wolkabout
