@@ -19,9 +19,19 @@ class Adapter
 public:
 	Adapter();
 
+	gboolean is_scanning;
+
 	static int call_method(const char *method, GVariant *param);
 
 	static int set_property(const char *prop, GVariant *value);
+
+	int power_on();
+
+	int remove_device(const char* device);
+
+	int start_scan();
+
+	int stop_scan();
 
 	guint subscribe_adapter_changed();
 

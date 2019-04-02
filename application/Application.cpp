@@ -39,9 +39,8 @@
 
 #define BT_ADDRESS_STRING_SIZE 18
 
-wolkabout::Adapter adapter; 
+wolkabout::Adapter adapter;
 
-gboolean is_scanning;
 std::map<std::string, int> device_status;
 wolkabout::DeviceConfiguration appConfiguration;
 
@@ -84,7 +83,7 @@ static void device_appeared(GDBusConnection *sig,
                         /*do whatever*/
                             device_status[value] = 1;
                         /*remove device*/
-                         rc = adapter.call_method("RemoveDevice", g_variant_new("(o)", object));
+                         rc = adapter.remove_device(object);
                          if(rc)
                             std::cout<<"Unable to remove "<<object<<"\n";
                     }
@@ -140,14 +139,13 @@ gboolean timer_scan_publish(gpointer user_data)
 
     std::cout<<"Time is up!\n";
 
-    if(is_scanning){
-        int rc = adapter.call_method("StopDiscovery", NULL);
+    if(adapter.is_scanning){
+        int rc = adapter.stop_scan();
         if(rc){
             std::cout<<"Unable to stop scanning\n";
             return FALSE;
         }
         g_usleep(100);
-        is_scanning = FALSE;
 
         for(const auto& device : appConfiguration.getDevices()){
             for (const auto& sensor : device.getTemplate().getSensors()){
@@ -164,12 +162,11 @@ gboolean timer_scan_publish(gpointer user_data)
         }
     }
     else{
-        int rc = adapter.call_method("StartDiscovery", NULL);
+        int rc = adapter.start_scan();
         if(rc){
             std::cout<<"Unable to scan for new devices\n";
             return FALSE;
         }
-        is_scanning = TRUE;
     }
 
     return TRUE;
@@ -183,7 +180,7 @@ int main(int argc, char** argv)
     guint iface_removed;
 
     auto logger = std::unique_ptr<wolkabout::ConsoleLogger>(new wolkabout::ConsoleLogger());
-    logger->setLogLevel(wolkabout::LogLevel::DEBUG);
+    logger->setLogLevel(wolkabout::LogLevel::INFO);
     wolkabout::Logger::setInstance(std::move(logger));
 
     if (argc < 2)
@@ -251,16 +248,15 @@ int main(int argc, char** argv)
     iface_added = adapter.subscribe_device_added(device_appeared);
     iface_removed = adapter.subscribe_device_removed(device_disappeared);
 
-    rc = adapter.set_property("Powered", g_variant_new("b", TRUE));
+    rc = adapter.power_on();
     if(rc) {
         std::cout<<"Unable to enable the adapter\n";
     }
 
-    rc = adapter.call_method("StartDiscovery", NULL);
+    rc = adapter.start_scan();
     if(rc) {
         std::cout<<"Unable to scan for new devices\n";
     }
-    is_scanning = TRUE;
 
     adapter.run_loop();
 
