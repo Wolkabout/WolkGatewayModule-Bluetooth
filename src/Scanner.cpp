@@ -42,10 +42,7 @@ void Scanner::device_disappeared(GDBusConnection *sig,
             }
             auto it = std::find(s_addr_found.begin(), s_addr_found.end(), address);
             if(it != s_addr_found.end()){
-            	//std::cout<<"Removed device w address "<<address<<"\n";
-            	//std::cout<<"Vector size before removing"<<s_addr_found.size()<<"\n";
                 s_addr_found.erase(it);
-                //std::cout<<"Vector size after removing"<<s_addr_found.size()<<"\n";
             }
         }
     }
@@ -83,18 +80,24 @@ void Scanner::device_appeared(GDBusConnection *sig,
             g_variant_iter_init(&i, properties);
             while(g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
                 if(!(g_strcmp0(property_name, "Address"))){
-                        /*find the device*/
                         value = g_variant_get_string(prop_val, NULL);
-                        //std::cout<<"Found device with adress:"<<value<<"\n";
-                        //std::cout<<"Vector size before adding"<<s_addr_found.size()<<"\n";
                         s_addr_found.push_back(value);
-                        //std::cout<<"Vector size after adding"<<s_addr_found.size()<<"\n";
                 }
             g_variant_unref(prop_val);
         }
         g_variant_unref(properties);
     }
     return;
+}
+
+std::vector<std::string> Scanner::getDevices()
+{
+    return s_addr_found;
+}
+
+guint Scanner::add_timer(unsigned interval, gboolean(*f)(gpointer), gpointer user_data)
+{
+    return g_timeout_add_seconds(interval, f, user_data);
 }
 
 }

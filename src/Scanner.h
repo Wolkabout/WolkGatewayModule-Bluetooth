@@ -38,6 +38,11 @@ public:
                 					const gchar *signal_name,
                 					GVariant *parameters,
                 					gpointer user_data);
+
+        static std::vector<std::string> getDevices();
+
+        guint add_timer(unsigned interval, gboolean(*f)(gpointer), gpointer user_data);
+
         static std::vector<std::string> s_addr_found;
 };
 
