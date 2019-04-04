@@ -67,7 +67,7 @@ gboolean timer_scan_publish(gpointer user_data)
         }
 
         for (auto it = device_status.begin(); it != device_status.end(); it++) {
-            wolk->addSensorReading(it->first, "P", it->second);
+            wolk->addSensorReading(it->first, "T", it->second);
             it->second = 0;
         }
 
@@ -149,11 +149,6 @@ int main(int argc, char** argv)
     }
 
     unsigned interval = appConfiguration.getInterval();
-
-    /*guint timeout_id = g_timeout_add_seconds(interval, 
-                                            timer_scan_publish,
-                                            (void*)wolk.get());*/
-
 
     guint timeout_id = scanner.add_timer(interval, timer_scan_publish, (void*)wolk.get());
     guint prop_changed = adapter.subscribe_adapter_changed();

@@ -29,7 +29,7 @@ namespace wolkabout
 using nlohmann::json;
 
 wolkabout::SensorTemplate presenceSensor{"Presence",          
-                                "P",
+                                "T",
                                 wolkabout::ReadingType::Name::GENERIC,
                                 wolkabout::ReadingType::MeasurmentUnit::NUMERIC,
                                 "",
@@ -103,9 +103,9 @@ wolkabout::DeviceConfiguration DeviceConfiguration::fromJson(const std::string& 
     for (auto& element : j.at("devices"))
     {
         const auto name = element.at("name").get<std::string>();
-        const auto key = element.at("key").get<std::string>();
+        auto key = element.at("key").get<std::string>();
 
-        devices.push_back(Device(name, key, deviceTemplate1));
+        devices.push_back(Device(name, str_toupper(key), deviceTemplate1));
     }
 
     return DeviceConfiguration(localMqttUri, interval, devices, valueGenerator.value());
