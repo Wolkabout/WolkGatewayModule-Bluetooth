@@ -29,7 +29,7 @@ namespace wolkabout
 using nlohmann::json;
 
 wolkabout::SensorTemplate presenceSensor{"Presence",          
-                                "T",
+                                "P",
                                 wolkabout::ReadingType::Name::GENERIC,
                                 wolkabout::ReadingType::MeasurmentUnit::NUMERIC,
                                 "",

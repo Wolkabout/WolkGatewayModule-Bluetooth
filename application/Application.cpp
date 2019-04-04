@@ -67,7 +67,7 @@ gboolean timer_scan_publish(gpointer user_data)
         }
 
         for (auto it = device_status.begin(); it != device_status.end(); it++) {
-            wolk->addSensorReading(it->first, "T", it->second);
+            wolk->addSensorReading(it->first, "P", it->second);
             it->second = 0;
         }
 
