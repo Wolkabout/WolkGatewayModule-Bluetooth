@@ -32,7 +32,7 @@ Following tools/libraries are required in order to build this project:
 With the exception of bluez the former can be installed on Debian based system from terminal by invoking
 
 ```sh
-sudo apt-get install autotools-dev autoconf libtool m4 zlib1g-dev cmake python python-pip && python -m pip install conan
+sudo apt-get install autotools-dev autoconf libtool m4 zlib1g-dev cmake python python-pip && sudo python -m pip install conan
 ```
 
 To install bluez 5.5 with all it's dependencies you can run the 
