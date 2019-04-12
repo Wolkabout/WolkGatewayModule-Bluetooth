@@ -19,8 +19,6 @@ class Adapter
 public:
 	Adapter();
 
-	gboolean is_scanning;
-
 	static int call_method(const char *method, GVariant *param);
 
 	static int set_property(const char *prop, GVariant *value);
@@ -52,7 +50,11 @@ public:
 
 	void run_loop();
 
+	bool scanning();
+
 private:
+
+	bool is_scanning;
 
 	static void signal_changed(GDBusConnection *conn,
                     const gchar *sender,

@@ -50,7 +50,7 @@ int timer_scan_publish(void* user_data)
     wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
     std::vector<std::string> online_devices = wolkabout::Scanner::getDevices();
 
-    if(adapter.is_scanning){
+    if(adapter.scanning()){
         int rc = adapter.stop_scan();
         if(rc){
             LOG(ERROR)<<"Unable to stop scanning\n";

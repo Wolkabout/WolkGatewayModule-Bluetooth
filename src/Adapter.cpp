@@ -174,14 +174,19 @@ int Adapter::power_on()
 
 int Adapter::start_scan()
 {
-    is_scanning = TRUE;
+    is_scanning = true;
     return Adapter::call_method("StartDiscovery", NULL);
 }
 
 int Adapter::stop_scan()
 {
-    is_scanning = FALSE;
+    is_scanning = false;
     return Adapter::call_method("StopDiscovery", NULL);
+}
+
+bool Adapter::scanning()
+{
+    return is_scanning;
 }
 
 }	//namespace wolkabout
