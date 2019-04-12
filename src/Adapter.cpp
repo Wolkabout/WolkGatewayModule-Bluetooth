@@ -4,7 +4,7 @@ namespace wolkabout
 {
 Adapter::Adapter()
 {
-    this->is_scanning = FALSE;
+    is_scanning = FALSE;
 }
 
 
@@ -103,7 +103,7 @@ void Adapter::signal_changed(GDBusConnection *conn,
 
 }
 
-guint Adapter::subscribe_adapter_changed()
+int Adapter::subscribe_adapter_changed()
 {
 	return g_dbus_connection_signal_subscribe(s_connection,
                         "org.bluez",
@@ -117,7 +117,7 @@ guint Adapter::subscribe_adapter_changed()
                         NULL);
 }
 
-guint Adapter::subscribe_device_added(void (*f)(GDBusConnection*, 
+int Adapter::subscribe_device_added(void (*f)(GDBusConnection*, 
 											const gchar*, 
 											const gchar*,
 											const gchar*, 
@@ -137,7 +137,7 @@ guint Adapter::subscribe_device_added(void (*f)(GDBusConnection*,
                             NULL);
 }
 
-guint Adapter::subscribe_device_removed(void (*f)(GDBusConnection*, 
+int Adapter::subscribe_device_removed(void (*f)(GDBusConnection*, 
 											const gchar*, 
 											const gchar*,
 											const gchar*, 
@@ -174,13 +174,13 @@ int Adapter::power_on()
 
 int Adapter::start_scan()
 {
-    this->is_scanning = TRUE;
+    is_scanning = TRUE;
     return Adapter::call_method("StartDiscovery", NULL);
 }
 
 int Adapter::stop_scan()
 {
-    this->is_scanning = FALSE;
+    is_scanning = FALSE;
     return Adapter::call_method("StopDiscovery", NULL);
 }
 

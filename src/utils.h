@@ -11,7 +11,7 @@ namespace wolkabout{
 
 void free_properties(GVariantIter* properties, GVariant* value);
 
-char* to_object(std::string address);
+std::string to_object(std::string address);
 
 std::string str_toupper(std::string s);
 

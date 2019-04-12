@@ -18,7 +18,6 @@ namespace wolkabout
 
 class Scanner
 {
-	friend class Adapter;
 public:
 
 	Scanner();
@@ -41,7 +40,7 @@ public:
 
         static std::vector<std::string> getDevices();
 
-        guint add_timer(unsigned interval, gboolean(*f)(gpointer), gpointer user_data);
+        int add_timer(unsigned interval, int(*f)(void*), void* user_data);
 
         static std::vector<std::string> s_addr_found;
 };

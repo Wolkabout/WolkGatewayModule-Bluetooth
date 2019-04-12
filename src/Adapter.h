@@ -33,16 +33,16 @@ public:
 
 	int stop_scan();
 
-	guint subscribe_adapter_changed();
+	int subscribe_adapter_changed();
 
-	guint subscribe_device_added(void (*f)(GDBusConnection*, 
+	int subscribe_device_added(void (*f)(GDBusConnection*, 
 											const gchar*, 
 											const gchar*,
 											const gchar*, 
 											const gchar*, 
 											GVariant*, 
 											gpointer));
-	guint subscribe_device_removed(void (*f)(GDBusConnection*, 
+	int subscribe_device_removed(void (*f)(GDBusConnection*, 
 											const gchar*, 
 											const gchar*,
 											const gchar*, 

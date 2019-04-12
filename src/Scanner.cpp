@@ -95,7 +95,7 @@ std::vector<std::string> Scanner::getDevices()
     return s_addr_found;
 }
 
-guint Scanner::add_timer(unsigned interval, gboolean(*f)(gpointer), gpointer user_data)
+int Scanner::add_timer(unsigned interval, int(*f)(void*), void* user_data)
 {
     return g_timeout_add_seconds(interval, f, user_data);
 }

@@ -12,14 +12,12 @@ void free_properties(GVariantIter* properties, GVariant* value)
     return;
 }
 
-char* to_object(std::string address)
+std::string to_object(std::string address)
 {
 	std::string pre = "/org/bluez/hci0/dev_";
 	std::replace(address.begin(), address.end(), ':', '_');
 	pre.append(address);
-	char* result = new char [pre.length() + 1];
-	std::strcpy(result, pre.c_str());
-	return result;
+	return pre;
 }
 
 std::string str_toupper(std::string s) {
