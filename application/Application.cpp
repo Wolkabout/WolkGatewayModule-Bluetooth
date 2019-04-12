@@ -44,7 +44,7 @@ wolkabout::Scanner scanner;
 std::map<std::string, int> device_status;
 wolkabout::DeviceConfiguration appConfiguration;
 
-gboolean timer_scan_publish(gpointer user_data)
+int timer_scan_publish(void* user_data)
 {
 
     wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
@@ -58,11 +58,10 @@ gboolean timer_scan_publish(gpointer user_data)
         }
 
         for(auto itr =online_devices.begin(); itr != online_devices.end(); itr++){
-            if(device_status.find(*itr) != device_status.end())
-            {
+            if(device_status.find(*itr) != device_status.end()){
                 LOG(INFO)<<"Found the wanted device\n";
                 device_status[*itr] = 1;
-                adapter.remove_device(wolkabout::to_object(*itr));
+                adapter.remove_device(wolkabout::to_object(*itr).c_str());
             }
         }
 
@@ -150,10 +149,10 @@ int main(int argc, char** argv)
 
     unsigned interval = appConfiguration.getInterval();
 
-    guint timeout_id = scanner.add_timer(interval, timer_scan_publish, (void*)wolk.get());
-    guint prop_changed = adapter.subscribe_adapter_changed();
-    guint iface_added = adapter.subscribe_device_added(wolkabout::Scanner::device_appeared);
-    guint iface_removed = adapter.subscribe_device_removed(wolkabout::Scanner::device_disappeared);
+    scanner.add_timer(interval, timer_scan_publish, (void*)wolk.get());
+    adapter.subscribe_adapter_changed();
+    adapter.subscribe_device_added(wolkabout::Scanner::device_appeared);
+    adapter.subscribe_device_removed(wolkabout::Scanner::device_disappeared);
 
     rc = adapter.power_on();
     if(rc) {
