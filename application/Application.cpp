@@ -16,27 +16,27 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <random>
 #include <string>
 #include <thread>
-#include <fstream>
-#include <iterator>
 
-#include <glib.h>
 #include <gio/gio.h>
+#include <glib.h>
 #include <sys/time.h>
 
+#include "Adapter.h"
 #include "Configuration.h"
+#include "Scanner.h"
 #include "Wolk.h"
 #include "model/DeviceTemplate.h"
-#include "utilities/ConsoleLogger.h"
 #include "model/SensorTemplate.h"
-#include "Adapter.h"
+#include "utilities/ConsoleLogger.h"
 #include "utils.h"
-#include "Scanner.h"
 
 wolkabout::Adapter adapter;
 wolkabout::Scanner scanner;
@@ -46,37 +46,42 @@ wolkabout::DeviceConfiguration appConfiguration;
 
 int timer_scan_publish(void* user_data)
 {
-
     wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
     std::vector<std::string> online_devices = wolkabout::Scanner::getDevices();
 
-    if(adapter.scanning()){
+    if (adapter.scanning())
+    {
         int rc = adapter.stop_scan();
-        if(rc){
-            LOG(ERROR)<<"Unable to stop scanning\n";
+        if (rc)
+        {
+            LOG(ERROR) << "Unable to stop scanning\n";
             return FALSE;
         }
 
-        for(auto itr =online_devices.begin(); itr != online_devices.end(); itr++){
-            if(device_status.find(*itr) != device_status.end()){
-                LOG(INFO)<<"Found the wanted device\n";
+        for (auto itr = online_devices.begin(); itr != online_devices.end(); itr++)
+        {
+            if (device_status.find(*itr) != device_status.end())
+            {
+                LOG(INFO) << "Found the wanted device\n";
                 device_status[*itr] = 1;
                 adapter.remove_device(wolkabout::to_object(*itr).c_str());
             }
         }
 
-        for (auto it = device_status.begin(); it != device_status.end(); it++) {
+        for (auto it = device_status.begin(); it != device_status.end(); it++)
+        {
             wolk->addSensorReading(it->first, "P", it->second);
             it->second = 0;
         }
 
         wolk->publish();
-
     }
-    else{
+    else
+    {
         int rc = adapter.start_scan();
-        if(rc){
-            LOG(ERROR)<<"Unable to scan for new devices\n";
+        if (rc)
+        {
+            LOG(ERROR) << "Unable to scan for new devices\n";
             return FALSE;
         }
     }
@@ -94,7 +99,8 @@ int main(int argc, char** argv)
 
     if (argc < 2)
     {
-        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath] [scanInterval]";
+        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0]
+                   << " [configurationFilePath] [scanInterval]";
         return -1;
     }
 
@@ -104,16 +110,18 @@ int main(int argc, char** argv)
     }
     catch (std::logic_error& e)
     {
-        LOG(ERROR) << "WolkGatewayModule Application: Unable to parse configuration file. Reason: " << e.what();
+        LOG(ERROR) << "WolkGatewayModule Application: Unable to parse "
+                      "configuration file. Reason: "
+                   << e.what();
         return -1;
     }
 
     std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
-        .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
-        })
-        .actuatorStatusProvider([&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {
-        })
+        .actuationHandler(
+          [&](const std::string& key, const std::string& reference, const std::string& value) -> void {})
+        .actuatorStatusProvider(
+          [&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {})
         .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus {
             auto it =
               std::find_if(appConfiguration.getDevices().begin(), appConfiguration.getDevices().end(),
@@ -127,11 +135,9 @@ int main(int argc, char** argv)
             return wolkabout::DeviceStatus::OFFLINE;
         })
         .configurationHandler(
-          [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {
-          })
-        .configurationProvider([&](const std::string& deviceKey) -> std::vector<wolkabout::ConfigurationItem> {
-            return {};
-        })
+          [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {})
+        .configurationProvider(
+          [&](const std::string& deviceKey) -> std::vector<wolkabout::ConfigurationItem> { return {}; })
         .host(appConfiguration.getLocalMqttUri())
         .build();
 
@@ -144,7 +150,7 @@ int main(int argc, char** argv)
 
     for (const auto& device : appConfiguration.getDevices())
     {
-            device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
+        device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
     }
 
     unsigned interval = appConfiguration.getInterval();
@@ -155,13 +161,15 @@ int main(int argc, char** argv)
     adapter.subscribe_device_removed(wolkabout::Scanner::device_disappeared);
 
     rc = adapter.power_on();
-    if(rc) {
-        LOG(ERROR)<<"Unable to enable the adapter\n";
+    if (rc)
+    {
+        LOG(ERROR) << "Unable to enable the adapter\n";
     }
 
     rc = adapter.start_scan();
-    if(rc) {
-        LOG(ERROR)<<"Unable to scan for new devices\n";
+    if (rc)
+    {
+        LOG(ERROR) << "Unable to scan for new devices\n";
     }
 
     adapter.run_loop();

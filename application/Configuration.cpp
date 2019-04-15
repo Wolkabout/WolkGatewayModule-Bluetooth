@@ -28,18 +28,10 @@ namespace wolkabout
 {
 using nlohmann::json;
 
-wolkabout::SensorTemplate presenceSensor{"Presence",          
-                                "P",
-                                wolkabout::ReadingType::Name::GENERIC,
-                                wolkabout::ReadingType::MeasurmentUnit::NUMERIC,
-                                "",
-                                0,
-                                1};     
+wolkabout::SensorTemplate presenceSensor{
+  "Presence", "P", wolkabout::ReadingType::Name::GENERIC, wolkabout::ReadingType::MeasurmentUnit::NUMERIC, "", 0, 1};
 
-DeviceTemplate deviceTemplate1{{},
-                                {presenceSensor},
-                                {},
-                                {}};
+DeviceTemplate deviceTemplate1{{}, {presenceSensor}, {}, {}};
 
 DeviceConfiguration::DeviceConfiguration(std::string localMqttUri, unsigned interval,
                                          std::vector<wolkabout::Device> devices, ValueGenerator generator)
