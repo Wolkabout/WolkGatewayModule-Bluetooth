@@ -18,6 +18,7 @@
 #include "model/DeviceTemplate.h"
 #include <string>
 #include <vector>
+#include "utils.h"
 
 namespace wolkabout
 {

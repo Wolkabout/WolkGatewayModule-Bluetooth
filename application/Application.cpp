@@ -16,155 +16,72 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <random>
 #include <string>
 #include <thread>
-#include <fstream>
-#include <iterator>
 
-#include <glib.h>
 #include <gio/gio.h>
+#include <glib.h>
 #include <sys/time.h>
 
+#include "Adapter.h"
 #include "Configuration.h"
+#include "Scanner.h"
 #include "Wolk.h"
 #include "model/DeviceTemplate.h"
-#include "utilities/ConsoleLogger.h"
 #include "model/SensorTemplate.h"
-#include "Adapter.h"
+#include "utilities/ConsoleLogger.h"
 #include "utils.h"
 
-#define BT_ADDRESS_STRING_SIZE 18
-
 wolkabout::Adapter adapter;
+wolkabout::Scanner scanner;
 
 std::map<std::string, int> device_status;
 wolkabout::DeviceConfiguration appConfiguration;
 
-static void device_appeared(GDBusConnection *sig,
-                const gchar *sender_name,
-                const gchar *object_path,
-                const gchar *interface,
-                const gchar *signal_name,
-                GVariant *parameters,
-                gpointer user_data)
+int timer_scan_publish(void* user_data)
 {
-    (void)sig;
-    (void)sender_name;
-    (void)object_path;
-    (void)interface;
-    (void)signal_name;
-    (void)user_data;
-
-    GVariantIter *interfaces;
-    const char *object;
-    const gchar *interface_name;
-    GVariant *properties;
-    int rc;
-
-    g_variant_get(parameters, "(&oa{sa{sv}})", &object, &interfaces);
-    while(g_variant_iter_next(interfaces, "{&s@a{sv}}", &interface_name, &properties)) {
-        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
-            const gchar *property_name;
-            GVariantIter i;
-            GVariant *prop_val;
-            const gchar* value;
-            g_variant_iter_init(&i, properties);
-            while(g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
-                if(!(g_strcmp0(property_name, "Address"))){
-                        /*find the device*/
-                        value = g_variant_get_string(prop_val, NULL);
-                        LOG(DEBUG)<<"Found device with adress:"<<value<<"\n";
-                        if( !(device_status.find(value) == device_status.end()) ){
-                            LOG(INFO)<<"Found the listed device adress:"<<value<<"\n";
-                        /*do whatever*/
-                            device_status[value] = 1;
-                        /*remove device*/
-                         rc = adapter.remove_device(object);
-                         if(rc)
-                            LOG(ERROR)<<"Unable to remove "<<object<<"\n";
-                    }
-                }
-            g_variant_unref(prop_val);
-        }
-        g_variant_unref(properties);
-    }
-    return;
-}
-
-static void device_disappeared(GDBusConnection *sig,
-                const gchar *sender_name,
-                const gchar *object_path,
-                const gchar *interface,
-                const gchar *signal_name,
-                GVariant *parameters,
-                gpointer user_data)
-{
-    (void)sig;
-    (void)sender_name;
-    (void)object_path;
-    (void)interface;
-    (void)signal_name;
-
-    GVariantIter *interfaces;
-    const char *object;
-    const gchar *interface_name;
-    char address[BT_ADDRESS_STRING_SIZE] = {'\0'};
-
-    g_variant_get(parameters, "(&oas)", &object, &interfaces);
-    while(g_variant_iter_next(interfaces, "s", &interface_name)) {
-        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
-            int i;
-            char *tmp = g_strstr_len(object, -1, "dev_") + 4;
-
-            for(i = 0; *tmp != '\0'; i++, tmp++) {
-                if(*tmp == '_') {
-                    address[i] = ':';
-                    continue;
-                }
-                address[i] = *tmp;
-            }
-        }
-    }
-    return;
-}
-
-gboolean timer_scan_publish(gpointer user_data)
-{
-
     wolkabout::Wolk* wolk = (wolkabout::Wolk*)user_data;
+    std::vector<std::string> online_devices = wolkabout::Scanner::getDevices();
 
-    LOG(DEBUG)<<"Time is up!\n";
-
-    if(adapter.is_scanning){
+    if (adapter.scanning())
+    {
         int rc = adapter.stop_scan();
-        if(rc){
-            LOG(ERROR)<<"Unable to stop scanning\n";
+        if (rc)
+        {
+            LOG(ERROR) << "Unable to stop scanning\n";
             return FALSE;
         }
-        g_usleep(100);
 
-        for(const auto& device : appConfiguration.getDevices()){
-            for (const auto& sensor : device.getTemplate().getSensors()){
-                std::string key = device.getKey();
-                wolk->addSensorReading(key, sensor.getReference(), device_status[key]);
+        for (auto itr = online_devices.begin(); itr != online_devices.end(); itr++)
+        {
+            if (device_status.find(*itr) != device_status.end())
+            {
+                LOG(INFO) << "Found the wanted device\n";
+                device_status[*itr] = 1;
+                adapter.remove_device(wolkabout::to_object(*itr).c_str());
             }
+        }
+
+        for (auto it = device_status.begin(); it != device_status.end(); it++)
+        {
+            wolk->addSensorReading(it->first, "P", it->second);
+            it->second = 0;
         }
 
         wolk->publish();
-
-        /*set all to false*/
-        for (auto it = device_status.begin(); it != device_status.end(); it++) {
-            device_status[it->first] = 0;
-        }
     }
-    else{
+    else
+    {
         int rc = adapter.start_scan();
-        if(rc){
-            LOG(ERROR)<<"Unable to scan for new devices\n";
+        if (rc)
+        {
+            LOG(ERROR) << "Unable to scan for new devices\n";
             return FALSE;
         }
     }
@@ -174,10 +91,7 @@ gboolean timer_scan_publish(gpointer user_data)
 
 int main(int argc, char** argv)
 {
-    int rc;
-    guint prop_changed;
-    guint iface_added;
-    guint iface_removed;
+    int rc = 0;
 
     auto logger = std::unique_ptr<wolkabout::ConsoleLogger>(new wolkabout::ConsoleLogger());
     logger->setLogLevel(wolkabout::LogLevel::INFO);
@@ -185,7 +99,8 @@ int main(int argc, char** argv)
 
     if (argc < 2)
     {
-        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0] << " [configurationFilePath] [scanInterval]";
+        LOG(ERROR) << "WolkGatewayModule Application: Usage -  " << argv[0]
+                   << " [configurationFilePath] [scanInterval]";
         return -1;
     }
 
@@ -195,21 +110,18 @@ int main(int argc, char** argv)
     }
     catch (std::logic_error& e)
     {
-        LOG(ERROR) << "WolkGatewayModule Application: Unable to parse configuration file. Reason: " << e.what();
+        LOG(ERROR) << "WolkGatewayModule Application: Unable to parse "
+                      "configuration file. Reason: "
+                   << e.what();
         return -1;
-    }
-
-    for (const auto& device : appConfiguration.getDevices())
-    {
-            device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
     }
 
     std::unique_ptr<wolkabout::Wolk> wolk =
       wolkabout::Wolk::newBuilder()
-        .actuationHandler([&](const std::string& key, const std::string& reference, const std::string& value) -> void {
-        })
-        .actuatorStatusProvider([&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {
-        })
+        .actuationHandler(
+          [&](const std::string& key, const std::string& reference, const std::string& value) -> void {})
+        .actuatorStatusProvider(
+          [&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {})
         .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus {
             auto it =
               std::find_if(appConfiguration.getDevices().begin(), appConfiguration.getDevices().end(),
@@ -223,11 +135,9 @@ int main(int argc, char** argv)
             return wolkabout::DeviceStatus::OFFLINE;
         })
         .configurationHandler(
-          [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {
-          })
-        .configurationProvider([&](const std::string& deviceKey) -> std::vector<wolkabout::ConfigurationItem> {
-            return {};
-        })
+          [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {})
+        .configurationProvider(
+          [&](const std::string& deviceKey) -> std::vector<wolkabout::ConfigurationItem> { return {}; })
         .host(appConfiguration.getLocalMqttUri())
         .build();
 
@@ -238,24 +148,28 @@ int main(int argc, char** argv)
 
     wolk->connect();
 
+    for (const auto& device : appConfiguration.getDevices())
+    {
+        device_status.insert(std::pair<std::string, int>(device.getKey(), 0));
+    }
+
     unsigned interval = appConfiguration.getInterval();
 
-    guint timeout_id = g_timeout_add_seconds(interval, 
-                                            timer_scan_publish,
-                                            (void*)wolk.get());
-
-    prop_changed = adapter.subscribe_adapter_changed();
-    iface_added = adapter.subscribe_device_added(device_appeared);
-    iface_removed = adapter.subscribe_device_removed(device_disappeared);
+    scanner.add_timer(interval, timer_scan_publish, (void*)wolk.get());
+    adapter.subscribe_adapter_changed();
+    adapter.subscribe_device_added(wolkabout::Scanner::device_appeared);
+    adapter.subscribe_device_removed(wolkabout::Scanner::device_disappeared);
 
     rc = adapter.power_on();
-    if(rc) {
-        LOG(ERROR)<<"Unable to enable the adapter\n";
+    if (rc)
+    {
+        LOG(ERROR) << "Unable to enable the adapter\n";
     }
 
     rc = adapter.start_scan();
-    if(rc) {
-        LOG(ERROR)<<"Unable to scan for new devices\n";
+    if (rc)
+    {
+        LOG(ERROR) << "Unable to scan for new devices\n";
     }
 
     adapter.run_loop();
