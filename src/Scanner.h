@@ -1,15 +1,15 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
-#include <glib.h>
+#include "Adapter.h"
+#include "Wolk.h"
+
+#include <algorithm>
 #include <gio/gio.h>
+#include <glib.h>
 #include <iostream>
 #include <map>
 #include <vector>
-#include <algorithm>
-
-#include "Adapter.h"
-#include "Wolk.h"
 
 #define BT_ADDRESS_STRING_SIZE 18
 
