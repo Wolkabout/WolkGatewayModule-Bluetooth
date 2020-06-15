@@ -24,14 +24,14 @@ Following tools/libraries are required in order to build this project:
 * libtool
 * m4
 * zlib1g-dev
-* python
-* python pip
+* libssl-dev
+* libglib2.0-dev
 * bluez - version 5.5
 
 With the exception of bluez the former can be installed on Debian based system from terminal by invoking
 
 ```sh
-sudo apt-get install autotools-dev autoconf libtool m4 zlib1g-dev cmake libssl-dev
+sudo apt-get install autotools-dev autoconf libtool m4 zlib1g-dev cmake libssl-dev libglib2.0-dev
 ```
 
 To install bluez 5.5 with all it's dependencies you can run the 
