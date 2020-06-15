@@ -36,9 +36,6 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}    -Wall -Wextra -pedantic             
                                             -Wvariadic-macros                                                          \
                                             -Wwrite-strings -Werror=non-virtual-dtor")
 
-set(SSL_INCLUDE_DIR "${CONAN_INCLUDE_DIRS_OPENSSL}")
-set(SSL_LIBS "${CONAN_LIBS}")
-
 # library output
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 link_directories(${CMAKE_BINARY_DIR}/lib)
