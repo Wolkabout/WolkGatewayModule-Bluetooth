@@ -1,11 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <glib.h>
-#include <gio/gio.h>
-#include <string>
-#include <cstring>
 #include <algorithm>
+#include <cstring>
+#include <gio/gio.h>
+#include <glib.h>
+#include <string>
 
 namespace wolkabout
 {

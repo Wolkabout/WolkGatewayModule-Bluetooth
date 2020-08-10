@@ -17,8 +17,6 @@ project(WolkGatewayBluetoothModule C CXX)
 
 set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(NO_OUTPUT_DIRS KEEP_RPATHS)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 11)
 
@@ -37,9 +35,6 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}    -Wall -Wextra -pedantic             
                                             -Werror=unreachable-code -Wno-unused                                       \
                                             -Wvariadic-macros                                                          \
                                             -Wwrite-strings -Werror=non-virtual-dtor")
-
-set(SSL_INCLUDE_DIR "${CONAN_INCLUDE_DIRS_OPENSSL}")
-set(SSL_LIBS "${CONAN_LIBS}")
 
 # library output
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

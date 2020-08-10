@@ -1,12 +1,11 @@
 #ifndef ADAPTER_H
 #define ADAPTER_H
 
-#include <iostream>
-
-#include <glib.h>
-#include <gio/gio.h>
-
 #include "utils.h"
+
+#include <gio/gio.h>
+#include <glib.h>
+#include <iostream>
 
 namespace wolkabout
 {

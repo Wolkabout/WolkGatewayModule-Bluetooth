@@ -14,21 +14,6 @@
  * limitations under the License.
  */
 
-#include <algorithm>
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <map>
-#include <memory>
-#include <random>
-#include <string>
-#include <thread>
-
-#include <gio/gio.h>
-#include <glib.h>
-#include <sys/time.h>
-
 #include "Adapter.h"
 #include "Configuration.h"
 #include "Scanner.h"
@@ -37,6 +22,20 @@
 #include "model/SensorTemplate.h"
 #include "utilities/ConsoleLogger.h"
 #include "utils.h"
+
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <gio/gio.h>
+#include <glib.h>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <random>
+#include <string>
+#include <sys/time.h>
+#include <thread>
 
 wolkabout::Adapter adapter;
 wolkabout::Scanner scanner;
@@ -122,17 +121,17 @@ int main(int argc, char** argv)
           [&](const std::string& key, const std::string& reference, const std::string& value) -> void {})
         .actuatorStatusProvider(
           [&](const std::string& key, const std::string& reference) -> wolkabout::ActuatorStatus {})
-        .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus {
+        .deviceStatusProvider([&](const std::string& deviceKey) -> wolkabout::DeviceStatus::Status {
             auto it =
               std::find_if(appConfiguration.getDevices().begin(), appConfiguration.getDevices().end(),
                            [&](const wolkabout::Device& device) -> bool { return (device.getKey() == deviceKey); });
 
             if (it != appConfiguration.getDevices().end())
             {
-                return wolkabout::DeviceStatus::CONNECTED;
+                return wolkabout::DeviceStatus::Status::CONNECTED;
             }
 
-            return wolkabout::DeviceStatus::OFFLINE;
+            return wolkabout::DeviceStatus::Status::OFFLINE;
         })
         .configurationHandler(
           [&](const std::string& deviceKey, const std::vector<wolkabout::ConfigurationItem>& configuration) {})

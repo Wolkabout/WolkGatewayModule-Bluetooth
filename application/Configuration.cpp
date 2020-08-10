@@ -15,6 +15,7 @@
  */
 
 #include "Configuration.h"
+
 #include "model/WolkOptional.h"
 #include "protocol/json/JsonDto.h"
 #include "utilities/FileSystemUtils.h"
