@@ -16,10 +16,10 @@
 
 #include "Configuration.h"
 
-#include "model/WolkOptional.h"
-#include "protocol/json/JsonDto.h"
-#include "utilities/FileSystemUtils.h"
-#include "utilities/json.hpp"
+#include "core/model/WolkOptional.h"
+#include "core/protocol/json/JsonDto.h"
+#include "core/utilities/FileSystemUtils.h"
+#include "core/utilities/json.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -29,8 +29,8 @@ namespace wolkabout
 {
 using nlohmann::json;
 
-wolkabout::SensorTemplate presenceSensor{
-  "Presence", "P", wolkabout::ReadingType::Name::GENERIC, wolkabout::ReadingType::MeasurmentUnit::NUMERIC, "", 0, 1};
+wolkabout::SensorTemplate presenceSensor{"Presence", "P", wolkabout::ReadingType::Name::GENERIC,
+                                         wolkabout::ReadingType::MeasurmentUnit::NUMERIC, ""};
 
 DeviceTemplate deviceTemplate1{{}, {presenceSensor}, {}, {}};
 
