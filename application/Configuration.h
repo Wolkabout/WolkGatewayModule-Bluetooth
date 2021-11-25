@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+#include "core/model/DeviceTemplate.h"
 #include "model/Device.h"
-#include "model/DeviceTemplate.h"
+#include "utils.h"
+
 #include <string>
 #include <vector>
-#include "utils.h"
 
 namespace wolkabout
 {
